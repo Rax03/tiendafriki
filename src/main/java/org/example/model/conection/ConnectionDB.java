@@ -1,30 +1,26 @@
 package org.example.model.conection;
 
-import org.example.utils.ManagerPDF;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class ConnectionDB {
 
-    private final static String FILE = "connection.pdf";
     private static ConnectionDB _instance;
     private Connection connection;
 
-    private ConnectionDB() {
-        ConnectionProperties properties = ManagerPDF.readPDFToConnectionProperties(FILE);
-
+    private ConnectionDB(String url, String user, String password) {
         try {
-            connection = DriverManager.getConnection(properties.getURL(), properties.getUser(), properties.getPassword());
+            connection = DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
             e.printStackTrace();
             connection = null;
         }
     }
 
-    public static Connection getConnection() {
+    public static Connection getConnection(String url, String user, String password) {
         if (_instance == null || _instance.connection == null || isConnectionClosed()) {
-            _instance = new ConnectionDB();
+            _instance = new ConnectionDB(url, user, password);
         }
         return _instance.connection;
     }
