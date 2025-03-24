@@ -1,5 +1,6 @@
 package org.example.utils;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -17,10 +18,9 @@ public class Validacion {
         String hexString = null;
 
         try {
-
+            // Usar UTF-8 explícitamente para la codificación
             MessageDigest digest = MessageDigest.getInstance("SHA3-256");
-
-            byte[] hash = digest.digest(clave.getBytes());
+            byte[] hash = digest.digest(clave.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder hexStringBuilder = new StringBuilder();
             for (byte b : hash) {
@@ -33,7 +33,8 @@ public class Validacion {
 
             hexString = hexStringBuilder.toString();
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            // Mejor manejo de excepciones (puedes lanzarla o loguearla)
+            System.err.println("Error durante el cifrado: " + e.getMessage());
         }
         return hexString;
     }
@@ -46,11 +47,8 @@ public class Validacion {
      * @return {@code true} si el correo cumple con el formato, {@code false} de lo contrario.
      */
     public static boolean validacionEmail(String email) {
+        // Expresión regular para validar correos de dominios específicos
         String emailRegex = "^[A-Za-z0-9+_.-]+@(gmail|hotmail)\\.(com|es)$";
         return email.matches(emailRegex);
     }
-
 }
-
-
-
