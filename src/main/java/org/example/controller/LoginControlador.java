@@ -1,29 +1,75 @@
 package org.example.controller;
 
+import org.example.model.dao.UsuarioDAO;
+import org.example.view.AdminVista;
+import org.example.view.ClienteVista;
 import org.example.view.LoginVista;
 import org.example.view.RegistroUsuarioVista;
 
 import javax.swing.*;
 
-public class LoginControlador {
+public  class LoginControlador {
     private LoginVista vista;
 
     public LoginControlador(LoginVista vista) {
         this.vista = vista;
 
+        // Vincular los botones con sus respectivos métodos
         vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
         vista.getBotonRegistrar().addActionListener(e -> abrirVentanaRegistro());
     }
 
     private void autenticarUsuario() {
-        // Aquí puedes agregar la lógica para autenticar al usuario
-        JOptionPane.showMessageDialog(vista, "Autenticación no implementada aún.");
+        try {
+            String email = vista.getEmail();
+            String contraseña = vista.getContraseña();
+
+            // Validar que los campos no estén vacíos
+            if (email.isEmpty() || contraseña.isEmpty()) {
+                JOptionPane.showMessageDialog(vista, "Por favor, ingresa tanto el correo como la contraseña.");
+                return;
+            }
+
+            UsuarioDAO usuarioDAO = new UsuarioDAO();
+            String rol = usuarioDAO.obtenerRolPorEmail(email);
+
+            // Validar si se encontró un rol asociado al correo
+            if (rol != null) {
+                switch (rol.toUpperCase()) {
+                    case "ADMIN":
+                        JOptionPane.showMessageDialog(vista, "Inicio de sesión como Administrador.");
+                        vista.dispose(); // Cierra la ventana de inicio de sesión
+                        new AdminVista(); // Abre la ventana de administrador
+                        break;
+                    case "CLIENTE":
+                        JOptionPane.showMessageDialog(vista, "Inicio de sesión como Cliente.");
+                        vista.dispose(); // Cierra la ventana de inicio de sesión
+                        new ClienteVista(); // Abre la ventana de cliente
+                        break;
+                    default:
+                        JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
+                        break;
+                }
+            } else {
+                JOptionPane.showMessageDialog(vista, "Correo o contraseña incorrectos.");
+            }
+        } catch (Exception e) {
+            // Manejo de errores inesperados
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(vista, "Ocurrió un error inesperado: " + e.getMessage());
+        }
     }
 
     private void abrirVentanaRegistro() {
-        RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
-        new RegistroUsuarioControlador(registroVista); // Vincula el registro con su controlador
-        registroVista.setVisible(true);
-        vista.dispose(); // Cierra la ventana de inicio de sesión
+        try {
+            RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
+            new RegistroUsuarioControlador(registroVista); // Vincula la vista de registro con su controlador
+            registroVista.setVisible(true); // Muestra la ventana de registro
+            vista.dispose(); // Cierra la ventana de inicio de sesión
+        } catch (Exception e) {
+            // Manejo de errores al abrir la ventana de registro
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(vista, "Ocurrió un error al intentar abrir la ventana de registro: " + e.getMessage());
+        }
     }
 }
