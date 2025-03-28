@@ -1,46 +1,44 @@
 package org.example.model.dao;
 
 import org.example.model.conection.ConexionBD;
-import org.example.model.entity.Categoria;
-import org.example.model.entity.Producto;
+import org.example.model.entity.Proveedor;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductoDAO {
+public class ProveedorDAO {
 
-    public List<Producto> obtenerTodosLosProductos() {
-        String sql = "SELECT * FROM productos";
-        List<Producto> productos = new ArrayList<>();
+    public List<Proveedor> obtenerTodosLosProveedores() {
+        String sql = "SELECT * FROM proveedores";
+        List<Proveedor> proveedores = new ArrayList<>();
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                Producto producto = new Producto(
+                Proveedor proveedor = new Proveedor(
                         rs.getInt("id"),
                         rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getDouble("precio"),
-                        rs.getInt("stock"),
-                        rs.getString("imagen"),
-                        rs.getObject("id_categoria", Categoria.class)
+                        rs.getString("direccion"),
+                        rs.getString("telefono"),
+                        rs.getString("gmail")
                 );
-                productos.add(producto);
+                proveedores.add(proveedor);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return productos;
+        return proveedores;
     }
 
-    public boolean agregarProducto(Producto producto) {
-        String sql = "INSERT INTO productos (nombre, categoria, precio) VALUES (?, ?, ?)";
+    public boolean agregarProveedor(Proveedor proveedor) {
+        String sql = "INSERT INTO proveedores (nombre, contacto, telefono, direccion) VALUES (?, ?, ?, ?)";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setString(1, producto.getNombre());
-            stmt.setString(2, producto.getDescripcion());
-            stmt.setDouble(3, producto.getPrecio());
+            stmt.setString(1, proveedor.getNombre());
+            stmt.setString(2, proveedor.getTelefono());
+            stmt.setString(3, proveedor.getDireccion());
+            stmt.setString(4, proveedor.getEmail());
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -49,8 +47,8 @@ public class ProductoDAO {
         }
     }
 
-    public boolean eliminarProducto(int id) {
-        String sql = "DELETE FROM productos WHERE id = ?";
+    public boolean eliminarProveedor(int id) {
+        String sql = "DELETE FROM proveedores WHERE id = ?";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -62,14 +60,15 @@ public class ProductoDAO {
         }
     }
 
-    public boolean actualizarProducto(Producto producto) {
-        String sql = "UPDATE productos SET nombre = ?, categoria = ?, precio = ? WHERE id = ?";
+    public boolean actualizarProveedor(Proveedor proveedor) {
+        String sql = "UPDATE proveedores SET nombre = ?, contacto = ?, telefono = ?, direccion = ? WHERE id = ?";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setString(1, producto.getNombre());
-            stmt.setString(2, producto.getDescripcion());
-            stmt.setDouble(3, producto.getPrecio());
-            stmt.setInt(4, producto.getId());
+            stmt.setString(1, proveedor.getNombre());
+            stmt.setString(2, proveedor.getDireccion());
+            stmt.setString(3, proveedor.getTelefono());
+            stmt.setString(4, proveedor.getEmail());
+            stmt.setInt(5, proveedor.getId());
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -78,3 +77,4 @@ public class ProductoDAO {
         }
     }
 }
+

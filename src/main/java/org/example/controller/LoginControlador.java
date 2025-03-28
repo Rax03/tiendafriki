@@ -1,6 +1,7 @@
 package org.example.controller;
 
 import org.example.model.dao.UsuarioDAO;
+import org.example.model.entity.Usuario;
 import org.example.view.AdminVista;
 import org.example.view.ClienteVista;
 import org.example.view.LoginVista;
@@ -31,10 +32,12 @@ public  class LoginControlador {
             }
 
             UsuarioDAO usuarioDAO = new UsuarioDAO();
-            String rol = usuarioDAO.obtenerRolPorEmail(email);
+            Usuario usuario = usuarioDAO.buscarPorEmail(email); // Busca el usuario por su email
 
-            // Validar si se encontró un rol asociado al correo
-            if (rol != null) {
+            // Validar si se encontró un usuario y autenticarlo
+            if (usuario != null && usuarioDAO.autenticarUsuario(email, contraseña)) {
+                String rol = usuario.getRol().name(); // Obtener el rol directamente del usuario
+
                 switch (rol.toUpperCase()) {
                     case "ADMIN":
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Administrador.");
@@ -44,7 +47,7 @@ public  class LoginControlador {
                     case "CLIENTE":
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Cliente.");
                         vista.dispose(); // Cierra la ventana de inicio de sesión
-                        new ClienteVista(); // Abre la ventana de cliente
+                        new ClienteVista(usuario.getId()); // Abre la ventana de cliente con el ID del usuario
                         break;
                     default:
                         JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
@@ -59,6 +62,7 @@ public  class LoginControlador {
             JOptionPane.showMessageDialog(vista, "Ocurrió un error inesperado: " + e.getMessage());
         }
     }
+
 
     private void abrirVentanaRegistro() {
         try {

@@ -88,4 +88,27 @@ public class UsuarioDAO {
         }
         return null; // Retorna null si no encuentra al usuario
     }
+    public Usuario obtenerDatosUsuario(int idUsuario) {
+        String sql = "SELECT * FROM Usuarios WHERE id = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idUsuario);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Usuario(
+                            rs.getInt("id"),
+                            rs.getString("nombre"),
+                            rs.getString("email"),
+                            rs.getString("contraseña_hash"),
+                            Rol.valueOf(rs.getString("rol").toUpperCase()),
+                            rs.getDate("fecha_registro").toLocalDate()
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // Si no se encuentra el usuario, retorna null
+    }
+
 }
