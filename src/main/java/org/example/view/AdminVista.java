@@ -1,9 +1,19 @@
 package org.example.view;
 
+import org.example.model.dao.CategoriaDAO;
+import org.example.model.dao.ProductoDAO;
+import org.example.model.entity.Categoria;
+import org.example.model.entity.Producto;
+
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
 public class AdminVista extends JFrame {
+
+    private JTable tablaProductos;
+    private DefaultTableModel modeloTabla;
 
     public AdminVista() {
         setTitle("Panel de Administración - Tienda Friki");
@@ -38,13 +48,16 @@ public class AdminVista extends JFrame {
         titulo.setForeground(Color.WHITE);
         panel.setBackground(new Color(34, 34, 34));
 
-        JTable tablaProductos = new JTable(
-                new Object[][] {
-                        {"1", "Funko Pop - Batman", "Figuras", "$15.00"},
-                        {"2", "Camiseta Star Wars", "Ropa Geek", "$20.00"}
-                },
-                new String[] {"ID", "Nombre", "Categoría", "Precio"}
-        );
+        // Configurar la tabla vacía
+        modeloTabla = new DefaultTableModel(new Object[][]{}, new String[]{"ID", "Nombre", "Categoría", "Precio", "Imagen"}) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Hacer las celdas no editables
+            }
+        };
+        tablaProductos = new JTable(modeloTabla);
+        tablaProductos.setRowHeight(50); // Ajustar la altura de las filas para las imágenes
+        tablaProductos.getColumnModel().getColumn(4).setCellRenderer(new ImageRenderer()); // Renderizador para imágenes
         JScrollPane scroll = new JScrollPane(tablaProductos);
 
         JPanel botones = new JPanel(new FlowLayout());
@@ -60,12 +73,102 @@ public class AdminVista extends JFrame {
         botones.add(btnEditar);
         botones.add(btnEliminar);
 
+        // Acción del botón "Agregar"
+        btnAgregar.addActionListener(e -> mostrarFormularioAgregarProducto());
+
         panel.add(titulo, BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
         panel.add(botones, BorderLayout.SOUTH);
 
         return panel;
     }
+
+    private void mostrarFormularioAgregarProducto() {
+        // Crear los campos del formulario
+        JTextField txtNombre = new JTextField();
+        JTextField txtDescripcion = new JTextField();
+        JTextField txtPrecio = new JTextField();
+        JTextField txtStock = new JTextField();
+        JTextField txtImagen = new JTextField(); // Mostrará la ruta de la imagen seleccionada
+        JButton btnSeleccionarImagen = new JButton("Seleccionar Imagen");
+
+        JComboBox<Categoria> cmbCategoria = new JComboBox<>();
+        CategoriaDAO categoriaDAO = new CategoriaDAO();
+
+        // Llenar el JComboBox con las categorías desde la base de datos
+        for (Categoria categoria : categoriaDAO.obtenerTodasLasCategorias()) {
+            cmbCategoria.addItem(categoria); // Agregar objetos Categoria al JComboBox
+        }
+
+        // Añadir acción para seleccionar imagen
+        btnSeleccionarImagen.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setDialogTitle("Seleccionar Imagen");
+
+            // Filtrar solo imágenes (opcional)
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Imágenes (JPG, PNG, GIF)", "jpg", "png", "gif"));
+
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                txtImagen.setText(fileChooser.getSelectedFile().getAbsolutePath()); // Establece la ruta en el campo de texto
+            }
+        });
+
+        // Crear un panel para contener los campos
+        JPanel panel = new JPanel(new GridLayout(7, 2, 10, 10));
+        panel.add(new JLabel("Nombre:"));
+        panel.add(txtNombre);
+        panel.add(new JLabel("Descripción:"));
+        panel.add(txtDescripcion);
+        panel.add(new JLabel("Precio:"));
+        panel.add(txtPrecio);
+        panel.add(new JLabel("Stock:"));
+        panel.add(txtStock);
+        panel.add(new JLabel("Imagen (Ruta):"));
+        panel.add(txtImagen); // Campo que muestra la ruta seleccionada
+        panel.add(new JLabel(""));
+        panel.add(btnSeleccionarImagen); // Botón para abrir el explorador de archivos
+        panel.add(new JLabel("Categoría:"));
+        panel.add(cmbCategoria);
+
+        // Mostrar el formulario en un cuadro de diálogo
+        int result = JOptionPane.showConfirmDialog(null, panel, "Agregar Producto", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                // Obtener los datos ingresados
+                String nombre = txtNombre.getText();
+                String descripcion = txtDescripcion.getText();
+                double precio = Double.parseDouble(txtPrecio.getText());
+                int stock = Integer.parseInt(txtStock.getText());
+                String imagen = txtImagen.getText();
+                Categoria categoriaSeleccionada = (Categoria) cmbCategoria.getSelectedItem();
+
+                // Insertar el producto en la tabla
+                modeloTabla.addRow(new Object[]{modeloTabla.getRowCount() + 1, nombre, categoriaSeleccionada.getNombre(), "$" + precio, imagen});
+
+                // Guardar el producto en la base de datos
+                ProductoDAO productoDAO = new ProductoDAO();
+                Producto producto = new Producto(0, nombre, descripcion, precio, stock, imagen, categoriaSeleccionada);
+
+                boolean exito = productoDAO.agregarProducto(producto);
+
+                if (exito) {
+                    JOptionPane.showMessageDialog(null, "Producto agregado correctamente.");
+                } else {
+                    JOptionPane.showMessageDialog(null, "Error al agregar el producto.");
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(null, "Error: verifica que los campos numéricos son válidos.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Ocurrió un error: " + ex.getMessage());
+            }
+        }
+    }
+
+
+
 
     // Panel para Categorías
     private JPanel crearPanelCategorias() {
@@ -97,11 +200,8 @@ public class AdminVista extends JFrame {
         panel.setBackground(new Color(34, 34, 34));
 
         JTable tablaProveedores = new JTable(
-                new Object[][] {
-                        {"1", "Proveedor Geekland", "contacto@geekland.com", "123456789", "Calle Friki 101"},
-                        {"2", "Super Friki Supply", "ventas@frikisupply.com", "987654321", "Calle Star Wars 42"}
-                },
-                new String[] {"ID", "Nombre", "Contacto", "Teléfono", "Dirección"}
+                new Object[][]{},
+                new String[]{"ID", "Nombre", "Contacto", "Teléfono", "Dirección"}
         );
         JScrollPane scroll = new JScrollPane(tablaProveedores);
 
@@ -134,11 +234,8 @@ public class AdminVista extends JFrame {
         panel.setBackground(new Color(34, 34, 34));
 
         JTable tablaPedidos = new JTable(
-                new Object[][] {
-                        {"1001", "Cliente A", "2023-05-01", "Completado"},
-                        {"1002", "Cliente B", "2023-05-03", "Pendiente"}
-                },
-                new String[] {"ID Pedido", "Cliente", "Fecha", "Estado"}
+                new Object[][]{},
+                new String[]{"ID Pedido", "Cliente", "Fecha", "Estado"}
         );
         JScrollPane scroll = new JScrollPane(tablaPedidos);
 
@@ -161,5 +258,22 @@ public class AdminVista extends JFrame {
         boton.setBackground(new Color(0, 153, 76));
         boton.setForeground(Color.WHITE);
         boton.setFocusPainted(false);
+    }
+
+    private class ImageRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel label = new JLabel();
+            label.setHorizontalAlignment(JLabel.CENTER);
+
+            if (value != null) {
+                String imagePath = value.toString(); // Obtener la ruta de la imagen
+                ImageIcon icon = new ImageIcon(imagePath); // Cargar la imagen desde la ruta
+                Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH); // Escalar la imagen
+                label.setIcon(new ImageIcon(scaledImage)); // Establecer la imagen escalada en el label
+            }
+
+            return label;
+        }
     }
 }
