@@ -5,6 +5,7 @@ import org.example.model.dao.ProductoDAO;
 import org.example.model.entity.Categoria;
 import org.example.model.entity.Producto;
 
+import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -18,9 +19,20 @@ public class AdminVista extends JFrame {
     public AdminVista() {
         setTitle("Panel de Administración - Tienda Friki");
         setSize(1200, 800);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
+
+        // Panel superior para el botón de "Cerrar Sesión"
+        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        estilizarBoton(btnCerrarSesion);
+
+        // Acción del botón "Cerrar Sesión"
+        btnCerrarSesion.addActionListener(e -> cerrarSesion());
+
+        panelSuperior.setBackground(new Color(34, 34, 34)); // Fondo oscuro
+        panelSuperior.add(btnCerrarSesion);
 
         // Crear pestañas
         JTabbedPane pestañas = new JTabbedPane();
@@ -34,10 +46,30 @@ public class AdminVista extends JFrame {
         pestañas.setFont(new Font("Comic Sans MS", Font.BOLD, 16));
         pestañas.setForeground(new Color(255, 153, 51)); // Naranja vibrante
 
-        // Agregar pestañas al marco
-        add(pestañas);
+        // Agregar panel superior y pestañas al marco
+        add(panelSuperior, BorderLayout.NORTH);
+        add(pestañas, BorderLayout.CENTER);
 
         setVisible(true);
+    }
+
+    private void cerrarSesion() {
+        System.out.println("Intentando cerrar sesión...");
+        int confirmacion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Estás seguro de que deseas cerrar sesión?",
+                "Cerrar Sesión",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            System.out.println("Cerrando ventana actual...");
+            dispose();
+            System.out.println("Abriendo ventana de inicio de sesión...");
+            new LoginVista();
+        } else {
+            System.out.println("Operación de cerrar sesión cancelada.");
+        }
     }
 
     // Panel para Productos
@@ -80,8 +112,26 @@ public class AdminVista extends JFrame {
         panel.add(scroll, BorderLayout.CENTER);
         panel.add(botones, BorderLayout.SOUTH);
 
+        // Llenar la tabla con productos existentes
+        ProductoDAO productoDAO = new ProductoDAO();
+        List<Producto> productos = productoDAO.obtenerTodosLosProductos();
+        if (productos.isEmpty()) {
+            System.out.println("No hay productos en la base de datos.");
+        } else {
+            for (Producto producto : productos) {
+                modeloTabla.addRow(new Object[]{
+                        producto.getId(),
+                        producto.getNombre(),
+                        producto.getId_categoria().getNombre(),
+                        "$" + producto.getPrecio(),
+                        producto.getImagen() // Ruta de la imagen
+                });
+            }
+        }
+
         return panel;
     }
+
 
     private void mostrarFormularioAgregarProducto() {
         // Crear los campos del formulario

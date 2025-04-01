@@ -13,7 +13,7 @@ public class ProductoDAO {
     // Método para obtener todos los productos
     public List<Producto> obtenerTodosLosProductos() {
         String sql = "SELECT p.*, c.nombre AS nombre_categoria FROM productos p " +
-                "JOIN categorias c ON p.id_categoria = c.id";
+                "JOIN categorias c ON p.id_categoria = c.id_categoria"; // Ajusta el nombre de la columna
         List<Producto> productos = new ArrayList<>();
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql);
@@ -27,7 +27,7 @@ public class ProductoDAO {
 
                 // Crear el objeto Producto
                 Producto producto = new Producto(
-                        rs.getInt("id"),
+                        rs.getInt("id_producto"),
                         rs.getString("nombre"),
                         rs.getString("descripcion"),
                         rs.getDouble("precio"),
@@ -42,6 +42,7 @@ public class ProductoDAO {
         }
         return productos;
     }
+
 
     // Método para agregar un producto
     public boolean agregarProducto(Producto producto) {

@@ -1,10 +1,16 @@
 package org.example.view;
 
+import org.example.model.dao.ProductoDAO;
 import org.example.model.dao.UsuarioDAO;
+import org.example.model.entity.Producto;
 import org.example.model.entity.Usuario;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.File;
+import java.util.List;
 
 public class ClienteVista extends JFrame {
 
@@ -15,12 +21,23 @@ public class ClienteVista extends JFrame {
     private JButton btnProcesarPedido;
     private JButton btnActualizarDatos;
 
-    public ClienteVista(int idUsuario) { // Recibe el ID del usuario para cargar datos personales
+    public ClienteVista(int idUsuario) {
         setTitle("Panel de Cliente - Tienda Friki");
         setSize(1200, 800);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
+
+        // Crear un panel superior para el botón de cerrar sesión
+        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        estilizarBoton(btnCerrarSesion);
+
+        // Acción del botón "Cerrar Sesión"
+        btnCerrarSesion.addActionListener(e -> cerrarSesion());
+
+        panelSuperior.setBackground(new Color(34, 34, 34)); // Fondo oscuro
+        panelSuperior.add(btnCerrarSesion);
 
         // Crear pestañas
         JTabbedPane pestañas = new JTabbedPane();
@@ -34,11 +51,27 @@ public class ClienteVista extends JFrame {
         pestañas.setFont(new Font("Comic Sans MS", Font.BOLD, 16));
         pestañas.setForeground(new Color(255, 153, 51)); // Naranja vibrante
 
-        // Agregar pestañas al marco
-        add(pestañas);
+        // Agregar panel superior y pestañas al marco
+        add(panelSuperior, BorderLayout.NORTH);
+        add(pestañas, BorderLayout.CENTER);
 
         setVisible(true);
     }
+    private void cerrarSesion() {
+        int confirmacion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Estás seguro de que deseas cerrar sesión?",
+                "Cerrar Sesión",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            dispose(); // Cierra la ventana actual
+            // Aquí puedes redirigir al usuario al inicio de sesión
+            new LoginVista(); // Asegúrate de que esta clase muestra la pantalla de inicio de sesión
+        }
+    }
+
 
     // Panel para visualizar productos
     private JPanel crearPanelCatalogoProductos() {
@@ -48,15 +81,27 @@ public class ClienteVista extends JFrame {
         titulo.setForeground(new Color(255, 255, 255));
         panel.setBackground(new Color(34, 34, 34));
 
-        tablaProductos = new JTable(
-                new Object[][] {
-                        {"1", "Funko Pop - Spider-Man", "Figuras", "$15.00"},
-                        {"2", "Camiseta Star Wars", "Ropa Geek", "$20.00"}
-                },
-                new String[] {"ID", "Nombre", "Categoría", "Precio"}
-        );
+        // Configuración de la tabla
+        DefaultTableModel modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre", "Categoría", "Precio", "Imagen"}, 0);
+        tablaProductos = new JTable(modeloTabla);
         tablaProductos.setFont(new Font("Arial", Font.PLAIN, 14));
-        tablaProductos.setRowHeight(25);
+        tablaProductos.setRowHeight(50); // Ajustar altura para las imágenes
+
+        // Renderizador de la columna de imágenes
+        tablaProductos.getColumnModel().getColumn(4).setCellRenderer(new ImageRenderer());
+
+        // Obtener productos desde la base de datos
+        ProductoDAO productoDAO = new ProductoDAO();
+        List<Producto> productos = productoDAO.obtenerTodosLosProductos();
+        for (Producto producto : productos) {
+            modeloTabla.addRow(new Object[]{
+                    producto.getId(),
+                    producto.getNombre(),
+                    producto.getId_categoria().getNombre(), // Mostrar el nombre de la categoría
+                    "$" + producto.getPrecio(),
+                    producto.getImagen() // Ruta de la imagen
+            });
+        }
 
         JScrollPane scroll = new JScrollPane(tablaProductos);
 
@@ -121,6 +166,7 @@ public class ClienteVista extends JFrame {
         return panel;
     }
 
+    // Panel para carrito de compras
     private JPanel crearPanelCarrito() {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel titulo = new JLabel("Carrito de Compras", JLabel.CENTER);
@@ -128,12 +174,9 @@ public class ClienteVista extends JFrame {
         titulo.setForeground(new Color(255, 255, 255));
         panel.setBackground(new Color(34, 34, 34));
 
-        tablaCarrito = new JTable(
-                new Object[][] {
-                        {"1", "Funko Pop - Spider-Man", "$15.00", "1", "$15.00"}
-                },
-                new String[] {"ID", "Producto", "Precio Unitario", "Cantidad", "Total"}
-        );
+        tablaCarrito = new JTable(new DefaultTableModel(
+                new String[]{"ID", "Producto", "Precio Unitario", "Cantidad", "Total"}, 0
+        ));
         tablaCarrito.setFont(new Font("Arial", Font.PLAIN, 14));
         tablaCarrito.setRowHeight(25);
 
@@ -152,6 +195,7 @@ public class ClienteVista extends JFrame {
         return panel;
     }
 
+    // Panel para historial de pedidos
     private JPanel crearPanelHistorialPedidos() {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel titulo = new JLabel("Historial de Pedidos", JLabel.CENTER);
@@ -159,13 +203,9 @@ public class ClienteVista extends JFrame {
         titulo.setForeground(new Color(255, 255, 255));
         panel.setBackground(new Color(34, 34, 34));
 
-        tablaPedidos = new JTable(
-                new Object[][] {
-                        {"1001", "2023-05-01", "Entregado", "$50.00"},
-                        {"1002", "2023-05-03", "Pendiente", "$30.00"}
-                },
-                new String[] {"ID Pedido", "Fecha", "Estado", "Total"}
-        );
+        tablaPedidos = new JTable(new DefaultTableModel(
+                new String[]{"ID Pedido", "Fecha", "Estado", "Total"}, 0
+        ));
         tablaPedidos.setFont(new Font("Arial", Font.PLAIN, 14));
         tablaPedidos.setRowHeight(25);
 
@@ -176,10 +216,40 @@ public class ClienteVista extends JFrame {
         return panel;
     }
 
+    // Método para estilizar botones
     private void estilizarBoton(JButton boton) {
         boton.setFont(new Font("Comic Sans MS", Font.BOLD, 14));
         boton.setBackground(new Color(0, 153, 76));
         boton.setForeground(Color.WHITE);
         boton.setFocusPainted(false);
+    }
+
+    private class ImageRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel label = new JLabel();
+            label.setHorizontalAlignment(JLabel.CENTER);
+
+            if (value != null) {
+                String imagePath = value.toString(); // Ruta de la imagen
+                File imageFile = new File(imagePath);
+                if (imageFile.exists()) {
+                    // Cargar la imagen desde la ruta
+                    ImageIcon icon = new ImageIcon(imagePath);
+                    // Escalar la imagen para ajustarse a las celdas de la tabla
+                    Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+                    label.setIcon(new ImageIcon(scaledImage));
+                } else {
+                    // Mostrar texto si la imagen no existe
+                    label.setText("Sin imagen");
+                    label.setForeground(Color.RED); // Destacar con color rojo si falta la imagen
+                }
+            } else {
+                label.setText("Sin imagen");
+                label.setForeground(Color.RED);
+            }
+
+            return label;
+        }
     }
 }

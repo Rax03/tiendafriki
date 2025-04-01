@@ -11,7 +11,7 @@ public class LoginVista extends JFrame {
     public LoginVista() {
         setTitle("Inicio de Sesión - Tienda Friki");
         setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         // Crear los componentes
@@ -19,10 +19,6 @@ public class LoginVista extends JFrame {
         etiquetaTitulo.setFont(new Font("Comic Sans MS", Font.BOLD, 22)); // Fuente divertida y llamativa
         etiquetaTitulo.setHorizontalAlignment(SwingConstants.CENTER);
         etiquetaTitulo.setForeground(new Color(128, 0, 128)); // Púrpura
-        
-        JLabel etiquetaLogo = new JLabel();
-        etiquetaLogo.setHorizontalAlignment(SwingConstants.CENTER);
-        etiquetaLogo.setIcon(new ImageIcon(getClass().getResource("/icons/ico.jpg"))); // Cargar el logo
 
         JLabel etiquetaEmail = new JLabel("Correo Electrónico:");
         etiquetaEmail.setForeground(new Color(0, 102, 204)); // Azul
@@ -67,11 +63,6 @@ public class LoginVista extends JFrame {
         panel.add(botonRegistrar);
 
         // Agregar el panel a la ventana
-
-// Establece un icono para la ventana
-        ImageIcon icono = new ImageIcon(getClass().getResource("/icons/ico.jpg"));
-        setIconImage(icono.getImage());
-
         add(panel);
     }
 
