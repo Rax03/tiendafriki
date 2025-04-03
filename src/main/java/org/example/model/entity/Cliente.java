@@ -6,7 +6,7 @@ public class Cliente {
     private int id;
     private String nombre;
     private String email;
-    private String telefon;
+    private String telefono;
     private String direccion;
     private Timestamp fecha_registro;
 
@@ -17,7 +17,7 @@ public class Cliente {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
-        this.telefon = telefon;
+        this.telefono = telefon;
         this.direccion = direccion;
         this.fecha_registro = fecha_registro;
     }
@@ -46,12 +46,12 @@ public class Cliente {
         this.email = email;
     }
 
-    public String getTelefon() {
-        return telefon;
+    public String getTelefono() {
+        return telefono;
     }
 
-    public void setTelefon(String telefon) {
-        this.telefon = telefon;
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
     }
 
     public String getDireccion() {
@@ -76,7 +76,7 @@ public class Cliente {
                 "id=" + id +
                 ", nombre='" + nombre + '\'' +
                 ", email='" + email + '\'' +
-                ", telefon='" + telefon + '\'' +
+                ", telefono='" + telefono + '\'' +
                 ", direccion='" + direccion + '\'' +
                 ", fecha_registro=" + fecha_registro +
                 '}';

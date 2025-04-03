@@ -87,7 +87,7 @@ public class AdminVista extends JFrame {
     }
 
     private void abrirClientes() {
-        JOptionPane.showMessageDialog(this, "Vista de Clientes en construcción...");
+        new ClienteVista(); // Abre la vista de Clientes
     }
 
     private void abrirPedidos() {

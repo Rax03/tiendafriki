@@ -1,23 +1,25 @@
 package org.example.controller;
 
+import org.example.model.dao.ClienteDAO;
 import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Usuario;
+import org.example.model.entity.Enum.Rol;
 import org.example.view.AdminVista;
-import org.example.view.ClienteVista;
+import org.example.view.UsuarioVista;
 import org.example.view.LoginVista;
 import org.example.view.RegistroUsuarioVista;
 
 import javax.swing.*;
 
-public  class LoginControlador {
+public class LoginControlador {
     private LoginVista vista;
 
     public LoginControlador(LoginVista vista) {
         this.vista = vista;
 
-        // Vincular los botones con sus respectivos métodos
-        vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
-        vista.getBotonRegistrar().addActionListener(e -> abrirVentanaRegistro());
+        // Conectar eventos de botones
+        this.vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
+        this.vista.getBotonRegistrar().addActionListener(e -> abrirVentanaRegistro());
     }
 
     private void autenticarUsuario() {
@@ -25,30 +27,42 @@ public  class LoginControlador {
             String email = vista.getEmail();
             String contraseña = vista.getContraseña();
 
-            // Validar que los campos no estén vacíos
+            // Validar campos no vacíos
             if (email.isEmpty() || contraseña.isEmpty()) {
                 JOptionPane.showMessageDialog(vista, "Por favor, ingresa tanto el correo como la contraseña.");
                 return;
             }
 
             UsuarioDAO usuarioDAO = new UsuarioDAO();
-            Usuario usuario = usuarioDAO.buscarPorEmail(email); // Busca el usuario por su email
+            Usuario usuario = usuarioDAO.buscarPorEmail(email);
 
-            // Validar si se encontró un usuario y autenticarlo
+            // Validar usuario encontrado y autenticar
             if (usuario != null && usuarioDAO.autenticarUsuario(email, contraseña)) {
-                String rol = usuario.getRol().name(); // Obtener el rol directamente del usuario
+                Rol rol = usuario.getRol();
 
-                switch (rol.toUpperCase()) {
-                    case "ADMIN":
+                switch (rol) {
+                    case ADMIN:
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Administrador.");
-                        vista.dispose(); // Cierra la ventana de inicio de sesión
+                        vista.dispose();
                         new AdminVista(); // Abre la ventana de administrador
                         break;
-                    case "CLIENTE":
+
+                    case CLIENTE:
+                        // Verificar si el cliente está registrado
+                        ClienteDAO clienteDAO = new ClienteDAO();
+                        if (clienteDAO.obtenerClientePorEmail(email) == null) {
+                            boolean registrado = clienteDAO.registrarClienteDesdeUsuario(usuario);
+                            if (registrado) {
+                                JOptionPane.showMessageDialog(vista, "Datos del cliente registrados exitosamente.");
+                            } else {
+                                JOptionPane.showMessageDialog(vista, "Error al registrar los datos del cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Cliente.");
-                        vista.dispose(); // Cierra la ventana de inicio de sesión
-                        new ClienteVista(usuario.getId()); // Abre la ventana de cliente con el ID del usuario
+                        vista.dispose();
+                        new UsuarioVista(usuario.getId()); // Abre la vista para clientes
                         break;
+
                     default:
                         JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
                         break;
@@ -57,23 +71,19 @@ public  class LoginControlador {
                 JOptionPane.showMessageDialog(vista, "Correo o contraseña incorrectos.");
             }
         } catch (Exception e) {
-            // Manejo de errores inesperados
-            e.printStackTrace();
             JOptionPane.showMessageDialog(vista, "Ocurrió un error inesperado: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-
 
     private void abrirVentanaRegistro() {
         try {
             RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
-            new RegistroUsuarioControlador(registroVista); // Vincula la vista de registro con su controlador
-            registroVista.setVisible(true); // Muestra la ventana de registro
-            vista.dispose(); // Cierra la ventana de inicio de sesión
+            registroVista.setVisible(true);
+            vista.dispose(); // Cerrar login actual
         } catch (Exception e) {
-            // Manejo de errores al abrir la ventana de registro
+            JOptionPane.showMessageDialog(vista, "Error al abrir la ventana de registro: " + e.getMessage());
             e.printStackTrace();
-            JOptionPane.showMessageDialog(vista, "Ocurrió un error al intentar abrir la ventana de registro: " + e.getMessage());
         }
     }
 }

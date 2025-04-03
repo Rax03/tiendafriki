@@ -1,255 +1,200 @@
 package org.example.view;
 
-import org.example.model.dao.ProductoDAO;
-import org.example.model.dao.UsuarioDAO;
-import org.example.model.entity.Producto;
-import org.example.model.entity.Usuario;
+import org.example.model.dao.ClienteDAO;
+import org.example.model.entity.Cliente;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.File;
+import java.sql.Timestamp;
 import java.util.List;
 
 public class ClienteVista extends JFrame {
 
-    private JTable tablaProductos;
-    private JTable tablaCarrito;
-    private JTable tablaPedidos;
-    private JButton btnAgregarCarrito;
-    private JButton btnProcesarPedido;
-    private JButton btnActualizarDatos;
+    private JTable tablaClientes;
+    private DefaultTableModel modeloTabla;
+    private ClienteDAO clienteDAO;
 
-    public ClienteVista(int idUsuario) {
-        setTitle("Panel de Cliente - Tienda Friki");
-        setSize(1200, 800);
+    public ClienteVista() {
+        setTitle("Gestión de Clientes");
+        setSize(900, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        setResizable(false);
 
-        // Crear un panel superior para el botón de cerrar sesión
-        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnCerrarSesion = new JButton("Cerrar Sesión");
-        estilizarBoton(btnCerrarSesion);
+        clienteDAO = new ClienteDAO();
 
-        // Acción del botón "Cerrar Sesión"
-        btnCerrarSesion.addActionListener(e -> cerrarSesion());
-
-        panelSuperior.setBackground(new Color(34, 34, 34)); // Fondo oscuro
-        panelSuperior.add(btnCerrarSesion);
-
-        // Crear pestañas
-        JTabbedPane pestañas = new JTabbedPane();
-
-        // Pestañas funcionales
-        pestañas.addTab("Catálogo de Productos", crearPanelCatalogoProductos());
-        pestañas.addTab("Carrito de Compras", crearPanelCarrito());
-        pestañas.addTab("Historial de Pedidos", crearPanelHistorialPedidos());
-        pestañas.addTab("Mis Datos", crearPanelDatosPersonales(idUsuario)); // Carga dinámica de datos
-
-        pestañas.setFont(new Font("Comic Sans MS", Font.BOLD, 16));
-        pestañas.setForeground(new Color(255, 153, 51)); // Naranja vibrante
-
-        // Agregar panel superior y pestañas al marco
-        add(panelSuperior, BorderLayout.NORTH);
-        add(pestañas, BorderLayout.CENTER);
-
-        setVisible(true);
-    }
-    private void cerrarSesion() {
-        int confirmacion = JOptionPane.showConfirmDialog(
-                this,
-                "¿Estás seguro de que deseas cerrar sesión?",
-                "Cerrar Sesión",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            dispose(); // Cierra la ventana actual
-            // Aquí puedes redirigir al usuario al inicio de sesión
-            new LoginVista(); // Asegúrate de que esta clase muestra la pantalla de inicio de sesión
-        }
-    }
-
-
-    // Panel para visualizar productos
-    private JPanel crearPanelCatalogoProductos() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel titulo = new JLabel("Catálogo de Productos", JLabel.CENTER);
-        titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
-        titulo.setForeground(new Color(255, 255, 255));
-        panel.setBackground(new Color(34, 34, 34));
-
-        // Configuración de la tabla
-        DefaultTableModel modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre", "Categoría", "Precio", "Imagen"}, 0);
-        tablaProductos = new JTable(modeloTabla);
-        tablaProductos.setFont(new Font("Arial", Font.PLAIN, 14));
-        tablaProductos.setRowHeight(50); // Ajustar altura para las imágenes
-
-        // Renderizador de la columna de imágenes
-        tablaProductos.getColumnModel().getColumn(4).setCellRenderer(new ImageRenderer());
-
-        // Obtener productos desde la base de datos
-        ProductoDAO productoDAO = new ProductoDAO();
-        List<Producto> productos = productoDAO.obtenerTodosLosProductos();
-        for (Producto producto : productos) {
-            modeloTabla.addRow(new Object[]{
-                    producto.getId(),
-                    producto.getNombre(),
-                    producto.getId_categoria().getNombre(), // Mostrar el nombre de la categoría
-                    "$" + producto.getPrecio(),
-                    producto.getImagen() // Ruta de la imagen
-            });
-        }
-
-        JScrollPane scroll = new JScrollPane(tablaProductos);
-
-        JPanel botones = new JPanel(new FlowLayout());
-        botones.setBackground(new Color(34, 34, 34));
-        btnAgregarCarrito = new JButton("Agregar al Carrito");
-        estilizarBoton(btnAgregarCarrito);
-        botones.add(btnAgregarCarrito);
-
-        panel.add(titulo, BorderLayout.NORTH);
-        panel.add(scroll, BorderLayout.CENTER);
-        panel.add(botones, BorderLayout.SOUTH);
-
-        return panel;
-    }
-
-    // Panel para cargar datos personales desde la base de datos
-    private JPanel crearPanelDatosPersonales(int idUsuario) {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel titulo = new JLabel("Mis Datos Personales", JLabel.CENTER);
+        // Configurar el panel principal
+        JPanel panelPrincipal = new JPanel(new BorderLayout());
+        JLabel titulo = new JLabel("Gestión de Clientes", JLabel.CENTER);
         titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
         titulo.setForeground(Color.WHITE);
-        panel.setBackground(new Color(34, 34, 34));
+        panelPrincipal.setBackground(new Color(34, 34, 34));
 
-        // Panel interno para mostrar los datos personales
-        JPanel datosPanel = new JPanel(new GridLayout(5, 1, 10, 10));
-        datosPanel.setBackground(new Color(34, 34, 34));
+        // Configurar la tabla
+        modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre", "Email", "Teléfono", "Dirección", "Fecha de Registro"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Hacer las celdas no editables
+            }
+        };
+        tablaClientes = new JTable(modeloTabla);
+        tablaClientes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollTabla = new JScrollPane(tablaClientes);
 
-        // Recuperar datos del usuario desde la base de datos
-        UsuarioDAO usuarioDAO = new UsuarioDAO();
-        Usuario usuario = usuarioDAO.obtenerDatosUsuario(idUsuario); // Usamos el ID del usuario
+        // Configurar botones CRUD
+        JPanel panelBotones = new JPanel(new FlowLayout());
+        JButton btnAgregar = new JButton("Agregar");
+        JButton btnEditar = new JButton("Editar");
+        JButton btnEliminar = new JButton("Eliminar");
+        estilizarBoton(btnAgregar);
+        estilizarBoton(btnEditar);
+        estilizarBoton(btnEliminar);
 
-        JLabel lblNombre = new JLabel("Nombre: " + (usuario != null ? usuario.getNombre() : "No disponible"));
-        JLabel lblEmail = new JLabel("Email: " + (usuario != null ? usuario.getEmail() : "No disponible"));
-        JLabel lblRol = new JLabel("Rol: " + (usuario != null ? usuario.getRol().name() : "No disponible"));
-        JLabel lblFechaRegistro = new JLabel("Fecha de Registro: " + (usuario != null ? usuario.getFechaRegistro() : "No disponible"));
+        btnAgregar.addActionListener(e -> mostrarFormularioAgregar());
+        btnEditar.addActionListener(e -> mostrarFormularioEditar());
+        btnEliminar.addActionListener(e -> eliminarCliente());
 
-        // Configuración visual de etiquetas
-        lblNombre.setForeground(Color.WHITE);
-        lblEmail.setForeground(Color.WHITE);
-        lblRol.setForeground(Color.WHITE);
-        lblFechaRegistro.setForeground(Color.WHITE);
+        panelBotones.add(btnAgregar);
+        panelBotones.add(btnEditar);
+        panelBotones.add(btnEliminar);
 
-        datosPanel.add(lblNombre);
-        datosPanel.add(lblEmail);
-        datosPanel.add(lblRol);
-        datosPanel.add(lblFechaRegistro);
+        // Llenar la tabla con los datos de los clientes
+        llenarTablaClientes();
 
-        // Botón para actualizar datos
-        JPanel botones = new JPanel(new FlowLayout());
-        botones.setBackground(new Color(34, 34, 34));
-        btnActualizarDatos = new JButton("Actualizar Datos");
-        estilizarBoton(btnActualizarDatos);
+        // Agregar componentes al panel principal
+        panelPrincipal.add(titulo, BorderLayout.NORTH);
+        panelPrincipal.add(scrollTabla, BorderLayout.CENTER);
+        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
-        botones.add(btnActualizarDatos);
-
-        // Agregar todo al panel principal
-        panel.add(titulo, BorderLayout.NORTH);
-        panel.add(datosPanel, BorderLayout.CENTER);
-        panel.add(botones, BorderLayout.SOUTH);
-
-        return panel;
+        // Agregar panel principal al JFrame
+        add(panelPrincipal);
+        setVisible(true);
     }
 
-    // Panel para carrito de compras
-    private JPanel crearPanelCarrito() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel titulo = new JLabel("Carrito de Compras", JLabel.CENTER);
-        titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
-        titulo.setForeground(new Color(255, 255, 255));
-        panel.setBackground(new Color(34, 34, 34));
-
-        tablaCarrito = new JTable(new DefaultTableModel(
-                new String[]{"ID", "Producto", "Precio Unitario", "Cantidad", "Total"}, 0
-        ));
-        tablaCarrito.setFont(new Font("Arial", Font.PLAIN, 14));
-        tablaCarrito.setRowHeight(25);
-
-        JScrollPane scroll = new JScrollPane(tablaCarrito);
-
-        JPanel botones = new JPanel(new FlowLayout());
-        botones.setBackground(new Color(34, 34, 34));
-        btnProcesarPedido = new JButton("Procesar Pedido");
-        estilizarBoton(btnProcesarPedido);
-        botones.add(btnProcesarPedido);
-
-        panel.add(titulo, BorderLayout.NORTH);
-        panel.add(scroll, BorderLayout.CENTER);
-        panel.add(botones, BorderLayout.SOUTH);
-
-        return panel;
+    private void llenarTablaClientes() {
+        modeloTabla.setRowCount(0); // Limpiar la tabla antes de llenarla
+        List<Cliente> clientes = clienteDAO.obtenerTodosLosClientes();
+        for (Cliente cliente : clientes) {
+            modeloTabla.addRow(new Object[]{
+                    cliente.getId(),
+                    cliente.getNombre(),
+                    cliente.getEmail(),
+                    cliente.getTelefono(),
+                    cliente.getDireccion(),
+                    cliente.getFecha_registro()
+            });
+        }
     }
 
-    // Panel para historial de pedidos
-    private JPanel crearPanelHistorialPedidos() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel titulo = new JLabel("Historial de Pedidos", JLabel.CENTER);
-        titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
-        titulo.setForeground(new Color(255, 255, 255));
-        panel.setBackground(new Color(34, 34, 34));
+    private void mostrarFormularioAgregar() {
+        // Crear el formulario para agregar un cliente
+        JTextField txtNombre = new JTextField();
+        JTextField txtEmail = new JTextField();
+        JTextField txtTelefono = new JTextField();
+        JTextField txtDireccion = new JTextField();
 
-        tablaPedidos = new JTable(new DefaultTableModel(
-                new String[]{"ID Pedido", "Fecha", "Estado", "Total"}, 0
-        ));
-        tablaPedidos.setFont(new Font("Arial", Font.PLAIN, 14));
-        tablaPedidos.setRowHeight(25);
+        JPanel panelFormulario = new JPanel(new GridLayout(4, 2, 10, 10));
+        panelFormulario.add(new JLabel("Nombre:"));
+        panelFormulario.add(txtNombre);
+        panelFormulario.add(new JLabel("Email:"));
+        panelFormulario.add(txtEmail);
+        panelFormulario.add(new JLabel("Teléfono:"));
+        panelFormulario.add(txtTelefono);
+        panelFormulario.add(new JLabel("Dirección:"));
+        panelFormulario.add(txtDireccion);
 
-        JScrollPane scroll = new JScrollPane(tablaPedidos);
-        panel.add(titulo, BorderLayout.NORTH);
-        panel.add(scroll, BorderLayout.CENTER);
-
-        return panel;
+        int opcion = JOptionPane.showConfirmDialog(this, panelFormulario, "Agregar Cliente", JOptionPane.OK_CANCEL_OPTION);
+        if (opcion == JOptionPane.OK_OPTION) {
+            try {
+                Cliente cliente = new Cliente(0, txtNombre.getText(), txtEmail.getText(), txtTelefono.getText(), txtDireccion.getText(), new Timestamp(System.currentTimeMillis()));
+                boolean exito = clienteDAO.agregarCliente(cliente);
+                if (exito) {
+                    JOptionPane.showMessageDialog(this, "Cliente agregado correctamente.");
+                    llenarTablaClientes();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al agregar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error en los datos ingresados: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
-    // Método para estilizar botones
+    private void mostrarFormularioEditar() {
+        int filaSeleccionada = tablaClientes.getSelectedRow();
+        if (filaSeleccionada < 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente para editar.", "Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int idCliente = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        Cliente cliente = clienteDAO.obtenerClientePorId(idCliente);
+        if (cliente == null) {
+            JOptionPane.showMessageDialog(this, "Error al obtener el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JTextField txtNombre = new JTextField(cliente.getNombre());
+        JTextField txtEmail = new JTextField(cliente.getEmail());
+        JTextField txtTelefono = new JTextField(cliente.getTelefono());
+        JTextField txtDireccion = new JTextField(cliente.getDireccion());
+
+        JPanel panelFormulario = new JPanel(new GridLayout(4, 2, 10, 10));
+        panelFormulario.add(new JLabel("Nombre:"));
+        panelFormulario.add(txtNombre);
+        panelFormulario.add(new JLabel("Email:"));
+        panelFormulario.add(txtEmail);
+        panelFormulario.add(new JLabel("Teléfono:"));
+        panelFormulario.add(txtTelefono);
+        panelFormulario.add(new JLabel("Dirección:"));
+        panelFormulario.add(txtDireccion);
+
+        int opcion = JOptionPane.showConfirmDialog(this, panelFormulario, "Editar Cliente", JOptionPane.OK_CANCEL_OPTION);
+        if (opcion == JOptionPane.OK_OPTION) {
+            try {
+                cliente.setNombre(txtNombre.getText());
+                cliente.setEmail(txtEmail.getText());
+                cliente.setTelefono(txtTelefono.getText());
+                cliente.setDireccion(txtDireccion.getText());
+
+                boolean exito = clienteDAO.actualizarCliente(cliente);
+                if (exito) {
+                    JOptionPane.showMessageDialog(this, "Cliente actualizado correctamente.");
+                    llenarTablaClientes();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al actualizar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error en los datos ingresados: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void eliminarCliente() {
+        int filaSeleccionada = tablaClientes.getSelectedRow();
+        if (filaSeleccionada < 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente para eliminar.", "Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int idCliente = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        int confirmacion = JOptionPane.showConfirmDialog(this, "¿Estás seguro de eliminar este cliente?", "Eliminar Cliente", JOptionPane.YES_NO_OPTION);
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            boolean exito = clienteDAO.eliminarCliente(idCliente);
+            if (exito) {
+                JOptionPane.showMessageDialog(this, "Cliente eliminado correctamente.");
+                llenarTablaClientes();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al eliminar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void estilizarBoton(JButton boton) {
-        boton.setFont(new Font("Comic Sans MS", Font.BOLD, 14));
-        boton.setBackground(new Color(0, 153, 76));
+        boton.setFont(new Font("Arial", Font.BOLD, 14));
+        boton.setBackground(new Color(0, 153, 255));
         boton.setForeground(Color.WHITE);
         boton.setFocusPainted(false);
-    }
-
-    private class ImageRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = new JLabel();
-            label.setHorizontalAlignment(JLabel.CENTER);
-
-            if (value != null) {
-                String imagePath = value.toString(); // Ruta de la imagen
-                File imageFile = new File(imagePath);
-                if (imageFile.exists()) {
-                    // Cargar la imagen desde la ruta
-                    ImageIcon icon = new ImageIcon(imagePath);
-                    // Escalar la imagen para ajustarse a las celdas de la tabla
-                    Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
-                    label.setIcon(new ImageIcon(scaledImage));
-                } else {
-                    // Mostrar texto si la imagen no existe
-                    label.setText("Sin imagen");
-                    label.setForeground(Color.RED); // Destacar con color rojo si falta la imagen
-                }
-            } else {
-                label.setText("Sin imagen");
-                label.setForeground(Color.RED);
-            }
-
-            return label;
-        }
+        boton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
     }
 }
