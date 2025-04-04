@@ -1,21 +1,18 @@
 package org.example.controller;
 
-import org.example.model.dao.ClienteDAO;
-import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Usuario;
-import org.example.model.entity.Enum.Rol;
-import org.example.view.AdminVista;
-import org.example.view.UsuarioVista;
+import org.example.model.service.LoginService;
 import org.example.view.LoginVista;
-import org.example.view.RegistroUsuarioVista;
 
 import javax.swing.*;
 
 public class LoginControlador {
     private LoginVista vista;
+    private LoginService loginService;
 
-    public LoginControlador(LoginVista vista) {
+    public LoginControlador(LoginVista vista, LoginService loginService) {
         this.vista = vista;
+        this.loginService = loginService;
 
         // Conectar eventos de botones
         this.vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
@@ -33,39 +30,22 @@ public class LoginControlador {
                 return;
             }
 
-            UsuarioDAO usuarioDAO = new UsuarioDAO();
-            Usuario usuario = usuarioDAO.buscarPorEmail(email);
+            Usuario usuario = loginService.autenticarUsuario(email, contraseña);
 
-            // Validar usuario encontrado y autenticar
-            if (usuario != null && usuarioDAO.autenticarUsuario(email, contraseña)) {
-                Rol rol = usuario.getRol();
-
-                switch (rol) {
-                    case ADMIN:
+            if (usuario != null) {
+                // Navegación según el rol del usuario
+                switch (usuario.getRol()) {
+                    case ADMIN -> {
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Administrador.");
                         vista.dispose();
-                        new AdminVista(); // Abre la ventana de administrador
-                        break;
-
-                    case CLIENTE:
-                        // Verificar si el cliente está registrado
-                        ClienteDAO clienteDAO = new ClienteDAO();
-                        if (clienteDAO.obtenerClientePorEmail(email) == null) {
-                            boolean registrado = clienteDAO.registrarClienteDesdeUsuario(usuario);
-                            if (registrado) {
-                                JOptionPane.showMessageDialog(vista, "Datos del cliente registrados exitosamente.");
-                            } else {
-                                JOptionPane.showMessageDialog(vista, "Error al registrar los datos del cliente.", "Error", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
+                        // Lógica para abrir AdminVista
+                    }
+                    case CLIENTE -> {
                         JOptionPane.showMessageDialog(vista, "Inicio de sesión como Cliente.");
                         vista.dispose();
-                        new UsuarioVista(usuario.getId()); // Abre la vista para clientes
-                        break;
-
-                    default:
-                        JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
-                        break;
+                        // Lógica para abrir UsuarioVista
+                    }
+                    default -> JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
                 }
             } else {
                 JOptionPane.showMessageDialog(vista, "Correo o contraseña incorrectos.");
@@ -78,9 +58,8 @@ public class LoginControlador {
 
     private void abrirVentanaRegistro() {
         try {
-            RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
-            registroVista.setVisible(true);
-            vista.dispose(); // Cerrar login actual
+            // Implementación de lógica para abrir la vista de registro
+            JOptionPane.showMessageDialog(vista, "Ventana de registro no implementada.");
         } catch (Exception e) {
             JOptionPane.showMessageDialog(vista, "Error al abrir la ventana de registro: " + e.getMessage());
             e.printStackTrace();

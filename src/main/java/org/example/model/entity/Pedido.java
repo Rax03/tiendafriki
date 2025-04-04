@@ -1,33 +1,31 @@
 package org.example.model.entity;
 
-import org.example.model.entity.Enum.Estado;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 
 public class Pedido {
-    private int id;
+    private int idPedido;
     private int idCliente;
-    private Date fecha;
-    private Estado estado;
-    private float total;
+    private LocalDateTime fechaPedido;
+    private String estado;
+    private double total;
 
     public Pedido() {
     }
 
-    public Pedido(int id, int idCliente, Date fecha, Estado estado, float total) {
-        this.id = id;
+    public Pedido(int idPedido, int idCliente, LocalDateTime fechaPedido, String estado, double total) {
+        this.idPedido = idPedido;
         this.idCliente = idCliente;
-        this.fecha = fecha;
+        this.fechaPedido = fechaPedido;
         this.estado = estado;
         this.total = total;
     }
 
-    public int getId() {
-        return id;
+    public int getIdPedido() {
+        return idPedido;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setIdPedido(int idPedido) {
+        this.idPedido = idPedido;
     }
 
     public int getIdCliente() {
@@ -38,37 +36,37 @@ public class Pedido {
         this.idCliente = idCliente;
     }
 
-    public Date getFecha() {
-        return fecha;
+    public LocalDateTime getFechaPedido() {
+        return fechaPedido;
     }
 
-    public void setFecha(Date fecha) {
-        this.fecha = fecha;
+    public void setFechaPedido(LocalDateTime fechaPedido) {
+        this.fechaPedido = fechaPedido;
     }
 
-    public Estado getEstado() {
+    public String getEstado() {
         return estado;
     }
 
-    public void setEstado(Estado estado) {
+    public void setEstado(String estado) {
         this.estado = estado;
     }
 
-    public float getTotal() {
+    public double getTotal() {
         return total;
     }
 
-    public void setTotal(float total) {
+    public void setTotal(double total) {
         this.total = total;
     }
 
     @Override
     public String toString() {
         return "Pedido{" +
-                "id=" + id +
+                "idPedido=" + idPedido +
                 ", idCliente=" + idCliente +
-                ", fecha=" + fecha +
-                ", estado=" + estado +
+                ", fechaPedido=" + fechaPedido +
+                ", estado='" + estado + '\'' +
                 ", total=" + total +
                 '}';
     }

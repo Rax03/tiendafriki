@@ -7,8 +7,32 @@ import org.example.utils.Validacion;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UsuarioDAO {
+    public List<Usuario> obtenerTodosLosUsuarios() {
+        String sql = "SELECT * FROM Usuarios";
+        List<Usuario> usuarios = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                usuarios.add(new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("email"),
+                        rs.getString("contraseña_hash"),
+                        Rol.valueOf(rs.getString("rol").toUpperCase()),
+                        rs.getDate("fecha_registro").toLocalDate()
+                ));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener todos los usuarios: " + e.getMessage());
+        }
+        return usuarios;
+    }
+
 
     public Usuario buscarPorEmail(String email) {
         String sql = "SELECT * FROM Usuarios WHERE email = ?";
@@ -110,5 +134,35 @@ public class UsuarioDAO {
         }
         return null; // Si no se encuentra el usuario, retorna null
     }
+
+    public boolean eliminarUsuario(int idUsuario) {
+        String sql = "DELETE FROM Usuarios WHERE id = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idUsuario);
+            stmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error al eliminar el usuario: " + e.getMessage());
+            return false;
+        }
+}
+    public boolean actualizarUsuario(Usuario usuario) {
+        String sql = "UPDATE Usuarios SET nombre = ?, email = ?, contraseña_hash = ?, rol = ? WHERE id = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, usuario.getNombre());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setString(3, usuario.getPassword());
+            stmt.setString(4, usuario.getRol().name());
+            stmt.setInt(5, usuario.getId());
+            stmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error al actualizar el usuario: " + e.getMessage());
+            return false;
+        }
+    }
+
 
 }
