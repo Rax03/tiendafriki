@@ -3,6 +3,7 @@ package org.example.controller;
 import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Enum.Rol;
 import org.example.model.entity.Usuario;
+import org.example.model.service.LoginService;
 import org.example.view.LoginVista;
 import org.example.view.RegistroUsuarioVista;
 
@@ -88,7 +89,7 @@ public class RegistroUsuarioControlador {
 
     private void abrirInicioSesion() {
         LoginVista loginVista = new LoginVista();
-        new LoginControlador(loginVista);
+        new LoginControlador(loginVista, new LoginService(new UsuarioDAO()));
         loginVista.setVisible(true);
     }
 }
