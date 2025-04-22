@@ -8,16 +8,15 @@ import org.example.view.UsuarioVista;
 import org.example.view.LoginVista;
 
 import javax.swing.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LoginControlador {
-    private LoginVista vista;
-    private LoginService loginService;
 
-    /**
-     * Constructor para el controlador de login.
-     * @param vista La vista de login.
-     * @param loginService El servicio de login que maneja la lógica de negocio.
-     */
+    private static final Logger logger = Logger.getLogger(LoginControlador.class.getName());
+    private final LoginVista vista;
+    private final LoginService loginService;
+
     public LoginControlador(LoginVista vista, LoginService loginService) {
         this.vista = vista;
         this.loginService = loginService;
@@ -27,95 +26,99 @@ public class LoginControlador {
         this.vista.getBotonRegistrar().addActionListener(e -> abrirVentanaRegistro());
     }
 
-    /**
-     * Método para autenticar al usuario.
-     * Valida los campos y utiliza el servicio de login para la autenticación.
-     */
     private void autenticarUsuario() {
         try {
             String email = vista.getEmail();
             String contraseña = vista.getContraseña();
 
-            // Validar campos no vacíos
-            if (email.isEmpty() || contraseña.isEmpty()) {
-                JOptionPane.showMessageDialog(vista, "Por favor, ingresa tanto el correo como la contraseña.");
+            if (!validarCredenciales(email, contraseña)) {
                 return;
             }
 
-            // Autenticar usuario utilizando el servicio
             Usuario usuario = loginService.autenticarUsuario(email, contraseña);
 
             if (usuario != null) {
-                // Navegación según el rol del usuario
-                switch (usuario.getRol()) {
-                    case ADMIN -> {
-                        JOptionPane.showMessageDialog(vista, "Inicio de sesión como Administrador.");
-                        vista.dispose();
-                        abrirAdminVista(); // Método para abrir la vista de administrador
-                    }
-                    case CLIENTE -> {
-                        JOptionPane.showMessageDialog(vista, "Inicio de sesión como Cliente.");
-                        vista.dispose();
-                        abrirUsuarioVista(usuario); // Método para abrir la vista de cliente
-                    }
-                    default -> JOptionPane.showMessageDialog(vista, "Rol desconocido. Consulta con soporte.");
-                }
+                manejarRolUsuario(usuario);
             } else {
-                JOptionPane.showMessageDialog(vista, "Correo o contraseña incorrectos.");
+                mostrarMensaje("Correo o contraseña incorrectos.");
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(vista, "Ocurrió un error inesperado: " + e.getMessage());
-            e.printStackTrace();
+            mostrarError("Error de autenticación", e);
         }
     }
 
-    /**
-     * Método para abrir la ventana de registro.
-     * Maneja la acción del botón de registro en la vista.
-     */
+    private boolean validarCredenciales(String email, String contraseña) {
+        if (email == null || email.isEmpty() || contraseña == null || contraseña.isEmpty()) {
+            mostrarMensaje("Por favor, ingresa tanto el correo como la contraseña.");
+            return false;
+        }
+
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            mostrarMensaje("El email no tiene un formato válido.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void manejarRolUsuario(Usuario usuario) {
+        switch (usuario.getRol()) {
+            case ADMIN -> abrirAdminVista();
+            case CLIENTE -> abrirUsuarioVista(usuario);
+            default -> {
+                mostrarMensaje("Rol desconocido. Consulta con soporte.");
+                logger.log(Level.WARNING, "Rol desconocido para el usuario con email: " + usuario.getEmail());
+            }
+        }
+    }
+
     private void abrirVentanaRegistro() {
         try {
-            RegistroUsuarioVista registroVista = new RegistroUsuarioVista(); // Crear una instancia de RegistroUsuarioVista
-            registroVista.setVisible(true); // Mostrar la ventana de registro
-            vista.dispose(); // Cierra la ventana de login
+            RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
+            registroVista.setVisible(true);
+            vista.dispose();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(vista, "Error al abrir la ventana de registro: " + e.getMessage());
-            e.printStackTrace();
+            mostrarError("Error al abrir la ventana de registro", e);
         }
     }
 
-    /**
-     * Método para abrir la vista de administrador.
-     * Ajusta la lógica y navegación para administradores.
-     */
     private void abrirAdminVista() {
         try {
-            // Crear instancia de AdminVista
             AdminVista adminVista = new AdminVista();
-
-            // Vincular AdminVista con AdminControlador
             new AdminControlador(adminVista);
-
-            // Hacer visible la vista de administrador
             adminVista.setVisible(true);
+            vista.dispose();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error al abrir la vista de administrador: " + e.getMessage());
-            e.printStackTrace();
+            mostrarError("Error al abrir la vista de administrador", e);
         }
     }
 
-
-    /**
-     * Método para abrir la vista de cliente.
-     * @param usuario El usuario autenticado.
-     */
     private void abrirUsuarioVista(Usuario usuario) {
-        try {
-            UsuarioVista usuarioVista = new UsuarioVista(usuario.getId()); // Crear una instancia de UsuarioVista
-            usuarioVista.setVisible(true); // Mostrar la ventana
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error al abrir la vista de cliente: " + e.getMessage());
-            e.printStackTrace();
+        if (usuario == null) {
+            mostrarMensaje("El usuario no existe o no se pudo autenticar.");
+            return;
         }
+
+        try {
+            // Asegúrate de que el constructor de UsuarioVista acepte los argumentos adecuados
+            UsuarioVista usuarioVista = new UsuarioVista(usuario.getNombre(), usuario.getEmail(), usuario.getId());
+            new UsuarioControlador(usuarioVista, usuario); // Vincular la vista con el controlador correspondiente
+            usuarioVista.setVisible(true);
+            vista.dispose();
+        } catch (IllegalArgumentException e) {
+            mostrarMensaje("Se produjo un error con los datos del usuario.");
+            logger.log(Level.WARNING, "Datos incorrectos al abrir UsuarioVista para el usuario: " + usuario.getEmail(), e);
+        } catch (Exception e) {
+            mostrarError("Error al abrir la vista de cliente", e);
+        }
+    }
+
+    private void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(vista, mensaje, "Información", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void mostrarError(String titulo, Exception e) {
+        JOptionPane.showMessageDialog(vista, titulo + ": " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        logger.log(Level.SEVERE, titulo, e);
     }
 }

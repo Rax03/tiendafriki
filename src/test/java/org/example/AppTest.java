@@ -6,17 +6,19 @@ import junit.framework.TestSuite;
 
 
 import org.example.controller.AdminControlador;
+import org.example.controller.UsuarioControlador;
 import org.example.view.AdminVista;
+import org.example.view.UsuarioVista;
 
 public class AppTest {
     public static void main(String[] args) {
         // Crear instancia de AdminVista
-        AdminVista adminVista = new AdminVista();
+        UsuarioVista usuarioVista = new UsuarioVista(16);
 
         // Vincular AdminVista con su controlador
-        new AdminControlador(adminVista);
+        new UsuarioControlador(usuarioVista);
 
         // Mostrar la vista de administrador
-        adminVista.setVisible(true);
+        usuarioVista.setVisible(true);
     }
 }

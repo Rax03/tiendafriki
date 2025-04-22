@@ -147,4 +147,101 @@ public class ProductoDAO {
         }
         return productos;
     }
+    public List<Producto> buscarProductosPorNombre(String nombre) {
+        String sql = "SELECT p.*, c.nombre AS nombre_categoria FROM productos p " +
+                "JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                "WHERE p.nombre LIKE ?";
+        List<Producto> productos = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, "%" + nombre + "%");
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Categoria categoria = new Categoria(rs.getInt("id_categoria"), rs.getString("nombre_categoria"));
+                Producto producto = new Producto(
+                        rs.getInt("id_producto"),
+                        rs.getString("nombre"),
+                        rs.getString("descripcion"),
+                        rs.getDouble("precio"),
+                        rs.getInt("stock"),
+                        rs.getString("imagen"),
+                        categoria
+                );
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return productos;
+    }
+    public boolean reducirStock(int idProducto, int cantidad) {
+        String sql = "UPDATE productos SET stock = stock - ? WHERE id_producto = ? AND stock >= ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, cantidad);
+            stmt.setInt(2, idProducto);
+            stmt.setInt(3, cantidad); // Verificación de stock suficiente
+            int filasActualizadas = stmt.executeUpdate();
+            return filasActualizadas > 0; // Si se actualizó al menos una fila
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public List<Producto> obtenerProductosConStockBajo(int limite) {
+        String sql = "SELECT p.*, c.nombre AS nombre_categoria FROM productos p " +
+                "JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                "WHERE p.stock < ?";
+        List<Producto> productos = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, limite);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Categoria categoria = new Categoria(rs.getInt("id_categoria"), rs.getString("nombre_categoria"));
+                Producto producto = new Producto(
+                        rs.getInt("id_producto"),
+                        rs.getString("nombre"),
+                        rs.getString("descripcion"),
+                        rs.getDouble("precio"),
+                        rs.getInt("stock"),
+                        rs.getString("imagen"),
+                        categoria
+                );
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return productos;
+    }
+    public List<Producto> obtenerProductosPaginados(int limite, int offset) {
+        String sql = "SELECT p.*, c.nombre AS nombre_categoria FROM productos p " +
+                "JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                "LIMIT ? OFFSET ?";
+        List<Producto> productos = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, limite);
+            stmt.setInt(2, offset);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Categoria categoria = new Categoria(rs.getInt("id_categoria"), rs.getString("nombre_categoria"));
+                Producto producto = new Producto(
+                        rs.getInt("id_producto"),
+                        rs.getString("nombre"),
+                        rs.getString("descripcion"),
+                        rs.getDouble("precio"),
+                        rs.getInt("stock"),
+                        rs.getString("imagen"),
+                        categoria
+                );
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return productos;
+    }
+
 }
