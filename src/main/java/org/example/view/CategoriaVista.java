@@ -10,12 +10,12 @@ import java.util.List;
 
 public class CategoriaVista extends JFrame {
 
-    private JTable tablaCategorias;
+    private JTable tablaCategoria;
     private DefaultTableModel modeloTabla;
     private CategoriaDAO categoriaDAO;
 
     public CategoriaVista() {
-        setTitle("Gestión de Categorías");
+        setTitle("Gestión de Categoría");
         setSize(600, 400);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -24,7 +24,7 @@ public class CategoriaVista extends JFrame {
 
         // Configurar panel principal
         JPanel panelPrincipal = new JPanel(new BorderLayout());
-        JLabel titulo = new JLabel("Gestión de Categorías", JLabel.CENTER);
+        JLabel titulo = new JLabel("Gestión de Categoría", JLabel.CENTER);
         titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
         titulo.setForeground(Color.WHITE);
         panelPrincipal.setBackground(new Color(34, 34, 34));
@@ -33,12 +33,12 @@ public class CategoriaVista extends JFrame {
         modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Hacer las celdas no editables
+                return false;
             }
         };
-        tablaCategorias = new JTable(modeloTabla);
-        tablaCategorias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane scrollTabla = new JScrollPane(tablaCategorias);
+        tablaCategoria = new JTable(modeloTabla);
+        tablaCategoria.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollTabla = new JScrollPane(tablaCategoria);
 
         // Configurar botones CRUD
         JPanel panelBotones = new JPanel(new FlowLayout());
@@ -57,23 +57,20 @@ public class CategoriaVista extends JFrame {
         panelBotones.add(btnEditar);
         panelBotones.add(btnEliminar);
 
-        // Llenar la tabla con los datos de las categorías
-        llenarTablaCategorias();
+        llenarTablaCategoria();
 
-        // Agregar componentes al panel principal
         panelPrincipal.add(titulo, BorderLayout.NORTH);
         panelPrincipal.add(scrollTabla, BorderLayout.CENTER);
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
-        // Agregar panel principal al JFrame
         add(panelPrincipal);
         setVisible(true);
     }
 
-    private void llenarTablaCategorias() {
-        modeloTabla.setRowCount(0); // Limpiar la tabla antes de llenarla
-        List<Categoria> categorias = categoriaDAO.obtenerTodasLasCategorias();
-        for (Categoria categoria : categorias) {
+    private void llenarTablaCategoria() {
+        modeloTabla.setRowCount(0);
+        List<Categoria> listaCategoria = categoriaDAO.obtenerTodasLasCategorias();
+        for (Categoria categoria : listaCategoria) {
             modeloTabla.addRow(new Object[]{
                     categoria.getIdCategoria(),
                     categoria.getNombre()
@@ -82,7 +79,6 @@ public class CategoriaVista extends JFrame {
     }
 
     private void mostrarFormularioAgregar() {
-        // Crear el formulario para agregar una categoría
         JTextField txtNombre = new JTextField();
 
         JPanel panelFormulario = new JPanel(new GridLayout(1, 2, 10, 10));
@@ -96,7 +92,7 @@ public class CategoriaVista extends JFrame {
                 boolean exito = categoriaDAO.agregarCategoria(categoria);
                 if (exito) {
                     JOptionPane.showMessageDialog(this, "Categoría agregada correctamente.");
-                    llenarTablaCategorias();
+                    llenarTablaCategoria();
                 } else {
                     JOptionPane.showMessageDialog(this, "Error al agregar la categoría.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -107,7 +103,7 @@ public class CategoriaVista extends JFrame {
     }
 
     private void mostrarFormularioEditar() {
-        int filaSeleccionada = tablaCategorias.getSelectedRow();
+        int filaSeleccionada = tablaCategoria.getSelectedRow();
         if (filaSeleccionada < 0) {
             JOptionPane.showMessageDialog(this, "Selecciona una categoría para editar.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
@@ -133,7 +129,7 @@ public class CategoriaVista extends JFrame {
                 boolean exito = categoriaDAO.actualizarCategoria(categoria);
                 if (exito) {
                     JOptionPane.showMessageDialog(this, "Categoría actualizada correctamente.");
-                    llenarTablaCategorias();
+                    llenarTablaCategoria();
                 } else {
                     JOptionPane.showMessageDialog(this, "Error al actualizar la categoría.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -144,7 +140,7 @@ public class CategoriaVista extends JFrame {
     }
 
     private void eliminarCategoria() {
-        int filaSeleccionada = tablaCategorias.getSelectedRow();
+        int filaSeleccionada = tablaCategoria.getSelectedRow();
         if (filaSeleccionada < 0) {
             JOptionPane.showMessageDialog(this, "Selecciona una categoría para eliminar.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
@@ -157,7 +153,7 @@ public class CategoriaVista extends JFrame {
             boolean exito = categoriaDAO.eliminarCategoria(idCategoria);
             if (exito) {
                 JOptionPane.showMessageDialog(this, "Categoría eliminada correctamente.");
-                llenarTablaCategorias();
+                llenarTablaCategoria();
             } else {
                 JOptionPane.showMessageDialog(this, "Error al eliminar la categoría.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -165,10 +161,10 @@ public class CategoriaVista extends JFrame {
     }
 
     private void estilizarBoton(JButton boton) {
-        boton.setFont(new Font("Arial", Font.BOLD, 14)); // Fuente en negrita
-        boton.setBackground(new Color(0, 153, 255)); // Azul vibrante
-        boton.setForeground(Color.WHITE); // Texto en blanco
-        boton.setFocusPainted(false); // Quitar el borde de enfoque
-        boton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2)); // Borde negro
+        boton.setFont(new Font("Arial", Font.BOLD, 14));
+        boton.setBackground(new Color(0, 153, 255));
+        boton.setForeground(Color.WHITE);
+        boton.setFocusPainted(false);
+        boton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
     }
 }

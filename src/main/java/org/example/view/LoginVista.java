@@ -2,6 +2,7 @@ package org.example.view;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 public class LoginVista extends JFrame {
     private JTextField campoEmail;
@@ -66,6 +67,7 @@ public class LoginVista extends JFrame {
         add(panel);
     }
 
+    // Obtener los datos de los campos
     public String getEmail() {
         return campoEmail.getText();
     }
@@ -74,11 +76,18 @@ public class LoginVista extends JFrame {
         return new String(campoContraseña.getPassword());
     }
 
+    // Métodos para obtener los botones
     public JButton getBotonLogin() {
         return botonLogin;
     }
 
     public JButton getBotonRegistrar() {
         return botonRegistrar;
+    }
+
+    // Método para agregar los action listeners a los botones
+    public void agregarActionListener(ActionListener listenerLogin, ActionListener listenerRegistrar) {
+        botonLogin.addActionListener(listenerLogin);
+        botonRegistrar.addActionListener(listenerRegistrar);
     }
 }

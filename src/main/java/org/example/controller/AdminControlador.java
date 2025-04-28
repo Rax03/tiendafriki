@@ -20,7 +20,6 @@ public class AdminControlador {
         vista.getBtnProductos().addActionListener(e -> abrirProductos());
         vista.getBtnProveedores().addActionListener(e -> abrirProveedores());
         vista.getBtnCategorias().addActionListener(e -> abrirCategorias());
-        vista.getBtnClientes().addActionListener(e -> abrirClientes());
         vista.getBtnPedidos().addActionListener(e -> abrirPedidos());
         vista.getBtnUsuarios().addActionListener(e -> abrirUsuarios());
         vista.getBtnCerrarSesion().addActionListener(e -> cerrarSesion());
@@ -56,15 +55,7 @@ public class AdminControlador {
         }
     }
 
-    private void abrirClientes() {
-        try {
-            System.out.println("Botón Clientes presionado."); // Depuración
-            ClienteVista clienteVista = new ClienteVista();
-            clienteVista.setVisible(true);
-        } catch (Exception e) {
-            mostrarError("Clientes", e);
-        }
-    }
+
 
     private void abrirPedidos() {
         try {

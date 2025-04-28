@@ -13,94 +13,84 @@ public class RegistroUsuarioVista extends JFrame {
     private JButton botonCancelar;
 
     public RegistroUsuarioVista() {
-        setTitle("Registro de Usuario");
-        setSize(500, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Centra la ventana en la pantalla
-        setResizable(false);
+        configurarVentana();
 
-        // Panel principal
-        JPanel panelPrincipal = new JPanel(new GridBagLayout());
-        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Márgenes
-        add(panelPrincipal);
+        JPanel panelSuperior = crearPanelSuperior();
+        JPanel panelPrincipal = crearPanelPrincipal();
+        JPanel panelInferior = crearPanelInferior();
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10); // Espaciado entre componentes
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        add(panelSuperior, BorderLayout.NORTH);
+        add(panelPrincipal, BorderLayout.CENTER);
+        add(panelInferior, BorderLayout.SOUTH);
 
-        // Título
-        JLabel titulo = new JLabel("Registro de Usuario");
-        titulo.setFont(new Font("Arial", Font.BOLD, 24));
-        titulo.setHorizontalAlignment(SwingConstants.CENTER);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2; // Ocupa dos columnas
-        panelPrincipal.add(titulo, gbc);
-
-        // Etiqueta y campo: Nombre
-        gbc.gridwidth = 1; // Restablece a una columna
-        gbc.gridy++;
-        gbc.gridx = 0;
-        panelPrincipal.add(new JLabel("Nombre:"), gbc);
-
-        gbc.gridx = 1;
-        campoNombre = new JTextField(20);
-        panelPrincipal.add(campoNombre, gbc);
-
-        // Etiqueta y campo: Email
-        gbc.gridy++;
-        gbc.gridx = 0;
-        panelPrincipal.add(new JLabel("Email:"), gbc);
-
-        gbc.gridx = 1;
-        campoEmail = new JTextField(20);
-        panelPrincipal.add(campoEmail, gbc);
-
-        // Etiqueta y campo: Contraseña
-        gbc.gridy++;
-        gbc.gridx = 0;
-        panelPrincipal.add(new JLabel("Contraseña:"), gbc);
-
-        gbc.gridx = 1;
-        campoContraseña = new JPasswordField(20);
-        panelPrincipal.add(campoContraseña, gbc);
-
-        // Etiqueta y campo: Confirmar Contraseña
-        gbc.gridy++;
-        gbc.gridx = 0;
-        panelPrincipal.add(new JLabel("Confirmar Contraseña:"), gbc);
-
-        gbc.gridx = 1;
-        campoConfirmarContraseña = new JPasswordField(20);
-        panelPrincipal.add(campoConfirmarContraseña, gbc);
-
-        // Etiqueta y desplegable: Rol
-        gbc.gridy++;
-        gbc.gridx = 0;
-        panelPrincipal.add(new JLabel("Rol:"), gbc);
-
-        gbc.gridx = 1;
-        comboRol = new JComboBox<>(new String[]{"ADMIN", "CLIENTE"});
-        comboRol.setFont(new Font("Arial", Font.PLAIN, 14));
-        panelPrincipal.add(comboRol, gbc);
-
-        // Botones: Registrar y Cancelar
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        botonRegistrar = new JButton("Registrar");
-        botonCancelar = new JButton("Cancelar");
-        panelBotones.add(botonRegistrar);
-        panelBotones.add(botonCancelar);
-
-        gbc.gridy++;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2; // Ocupa dos columnas
-        panelPrincipal.add(panelBotones, gbc);
-
-        // Mostrar la ventana
-        setVisible(true);
+        // ✅ ¡No llamamos a setVisible aquí!
     }
 
-    // Métodos para obtener datos de los campos
+    private void configurarVentana() {
+        setTitle("Registro de Usuario");
+        setSize(500, 450);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setResizable(false);
+    }
+
+    private JPanel crearPanelSuperior() {
+        JPanel panelSuperior = new JPanel();
+        panelSuperior.setBackground(new Color(52, 58, 64));
+        JLabel lblTitulo = new JLabel("Registro de Usuario");
+        lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
+        lblTitulo.setForeground(new Color(255, 204, 0));
+        panelSuperior.add(lblTitulo);
+        return panelSuperior;
+    }
+
+    private JPanel crearPanelPrincipal() {
+        JPanel panelPrincipal = new JPanel(new GridLayout(5, 2, 10, 10));
+        panelPrincipal.setBackground(new Color(28, 28, 30));
+
+        campoNombre = new JTextField(20);
+        campoEmail = new JTextField(20);
+        campoContraseña = new JPasswordField(20);
+        campoConfirmarContraseña = new JPasswordField(20);
+        comboRol = new JComboBox<>(new String[]{"ADMIN", "CLIENTE"});
+
+        agregarCampo(panelPrincipal, "Nombre:", campoNombre);
+        agregarCampo(panelPrincipal, "Email:", campoEmail);
+        agregarCampo(panelPrincipal, "Contraseña:", campoContraseña);
+        agregarCampo(panelPrincipal, "Confirmar Contraseña:", campoConfirmarContraseña);
+        agregarCampo(panelPrincipal, "Rol:", comboRol);
+
+        return panelPrincipal;
+    }
+
+    private JPanel crearPanelInferior() {
+        JPanel panelInferior = new JPanel();
+        panelInferior.setBackground(new Color(52, 58, 64));
+
+        botonRegistrar = new JButton("Registrar");
+        botonCancelar = new JButton("Cancelar");
+
+        panelInferior.add(botonRegistrar);
+        panelInferior.add(botonCancelar);
+
+        return panelInferior;
+    }
+
+    private void agregarCampo(JPanel panel, String etiqueta, JComponent campo) {
+        JLabel label = new JLabel(etiqueta);
+        label.setForeground(Color.WHITE);
+        panel.add(label);
+        panel.add(campo);
+    }
+
+    public JButton getBotonRegistrar() {
+        return botonRegistrar;
+    }
+
+    public JButton getBotonCancelar() {
+        return botonCancelar;
+    }
+
     public String getNombre() {
         return campoNombre.getText();
     }
@@ -118,15 +108,6 @@ public class RegistroUsuarioVista extends JFrame {
     }
 
     public String getRolSeleccionado() {
-        return comboRol.getSelectedItem().toString().toUpperCase(); // Asegúrate de usar `toUpperCase()`
-    }
-
-
-    public JButton getBotonRegistrar() {
-        return botonRegistrar;
-    }
-
-    public JButton getBotonCancelar() {
-        return botonCancelar;
+        return comboRol.getSelectedItem().toString().toUpperCase();
     }
 }

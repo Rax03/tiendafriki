@@ -4,6 +4,7 @@ import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Enum.Rol;
 import org.example.model.entity.Usuario;
 import org.example.model.service.LoginService;
+import org.example.model.service.UsuarioService;
 import org.example.view.LoginVista;
 import org.example.view.RegistroUsuarioVista;
 
@@ -11,83 +12,94 @@ import javax.swing.*;
 import java.time.LocalDate;
 
 public class RegistroUsuarioControlador {
-    private RegistroUsuarioVista vista;
-    private UsuarioDAO usuarioDAO;
+    private final RegistroUsuarioVista vista;
+    private final UsuarioService usuarioService;
 
     public RegistroUsuarioControlador(RegistroUsuarioVista vista) {
         this.vista = vista;
-        this.usuarioDAO = new UsuarioDAO();
+        this.usuarioService = new UsuarioService(new UsuarioDAO());
 
-        vista.getBotonRegistrar().addActionListener(e -> registrarUsuario());
-        vista.getBotonCancelar().addActionListener(e -> cancelarRegistro());
+        inicializarEventos();
+    }
+
+    private void inicializarEventos() {
+        System.out.println("📌 Registrando eventos de botones...");
+
+        if (vista.getBotonRegistrar() == null || vista.getBotonCancelar() == null) {
+            System.out.println("❌ Error: Botones no fueron creados correctamente.");
+            return;
+        }
+
+        vista.getBotonRegistrar().addActionListener(e -> {
+            System.out.println("✅ Botón Registrar presionado");
+            registrarUsuario();
+        });
+
+        vista.getBotonCancelar().addActionListener(e -> {
+            System.out.println("❌ Botón Cancelar presionado");
+            cancelarRegistro();
+        });
     }
 
     private void registrarUsuario() {
+        System.out.println("📌 Iniciando registro de usuario...");
+
         try {
-            // Captura los datos desde la vista
             String nombre = vista.getNombre();
             String email = vista.getEmail();
             String contraseña = vista.getContraseña();
             String confirmarContraseña = vista.getConfirmarContraseña();
-            String rolSeleccionado = vista.getRolSeleccionado(); // Captura el rol seleccionado
+            String rolSeleccionado = vista.getRolSeleccionado();
 
-            // Validación de campos obligatorios
             if (nombre.isEmpty() || email.isEmpty() || contraseña.isEmpty() || confirmarContraseña.isEmpty()) {
                 JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios.");
                 return;
             }
 
-            // Validación del formato del correo electrónico
             if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
                 JOptionPane.showMessageDialog(vista, "El correo no tiene un formato válido.");
                 return;
             }
 
-            // Verificación de contraseñas coincidentes
             if (!contraseña.equals(confirmarContraseña)) {
                 JOptionPane.showMessageDialog(vista, "Las contraseñas no coinciden.");
                 return;
             }
 
-            // Verifica si el correo ya está registrado
-            if (usuarioDAO.correoExiste(email)) {
+            if (usuarioService.correoExiste(email)) {
                 JOptionPane.showMessageDialog(vista, "El correo ya está registrado.");
                 return;
             }
 
-            // Mapeo del rol seleccionado al Enum
-            Rol rol = Rol.valueOf(rolSeleccionado); // Asegúrate de que el rol esté en mayúsculas
-
-            // Cifrado de la contraseña antes de registrar al usuario
+            Rol rol = Rol.valueOf(rolSeleccionado);
             String contraseñaHash = org.mindrot.jbcrypt.BCrypt.hashpw(contraseña, org.mindrot.jbcrypt.BCrypt.gensalt());
 
-            // Crear el objeto Usuario
             Usuario usuario = new Usuario(0, nombre, email, contraseñaHash, rol, LocalDate.now());
 
-            // Registrar al usuario en la base de datos
-            if (usuarioDAO.registrarUsuario(usuario)) {
-                JOptionPane.showMessageDialog(vista, "Usuario registrado exitosamente como " + rol + ".");
-                vista.dispose(); // Cierra la ventana de registro
-                abrirInicioSesion(); // Regresa al inicio de sesión
+            System.out.println("🔄 Intentando registrar usuario...");
+
+            if (usuarioService.registrarUsuario(usuario.getNombre(), usuario.getEmail(), usuario.getPassword(), usuario.getRol())) {
+                JOptionPane.showMessageDialog(vista, "✅ Usuario registrado exitosamente como " + usuario.getRol() + ".");
+                vista.dispose();
+                abrirInicioSesion();
             } else {
-                JOptionPane.showMessageDialog(vista, "Error al registrar usuario. Inténtalo nuevamente.");
+                JOptionPane.showMessageDialog(vista, "❌ Error al registrar usuario. Inténtalo nuevamente.");
             }
-        } catch (IllegalArgumentException e) {
-            // Error en caso de que el rol no sea válido
-            JOptionPane.showMessageDialog(vista, "Rol desconocido. Verifica los valores en el ComboBox.");
         } catch (Exception e) {
-            // Manejo de errores inesperados
+            System.err.println("🚨 Error al registrar usuario: " + e.getMessage());
             e.printStackTrace();
             JOptionPane.showMessageDialog(vista, "Se produjo un error inesperado: " + e.getMessage());
         }
     }
 
     private void cancelarRegistro() {
-        vista.dispose(); // Cierra la ventana de registro
-        abrirInicioSesion(); // Regresa a la ventana de inicio de sesión
+        System.out.println("🔄 Redirigiendo a Login...");
+        vista.dispose();
+        abrirInicioSesion();
     }
 
     private void abrirInicioSesion() {
+        System.out.println("📌 Abriendo pantalla de inicio de sesión...");
         LoginVista loginVista = new LoginVista();
         new LoginControlador(loginVista, new LoginService(new UsuarioDAO()));
         loginVista.setVisible(true);

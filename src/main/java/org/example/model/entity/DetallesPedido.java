@@ -4,7 +4,7 @@ import java.util.Date;
 
 public class DetallesPedido {
 
-    private Cliente idCliente;
+    private Usuario idUsuario;
     private Producto idProducto;
     private int cantidad;
     private float subtotal;
@@ -13,20 +13,20 @@ public class DetallesPedido {
     public DetallesPedido() {
     }
 
-    public DetallesPedido(Cliente idCliente, Producto idProducto, int cantidad, float subtotal, Date fecha) {
-        this.idCliente = idCliente;
+    public DetallesPedido(Usuario idCliente, Producto idProducto, int cantidad, float subtotal, Date fecha) {
+        this.idUsuario = idCliente;
         this.idProducto = idProducto;
         this.cantidad = cantidad;
         this.subtotal = subtotal;
         this.fecha = fecha;
     }
 
-    public Cliente getIdCliente() {
-        return idCliente;
+    public Usuario getIdUsuario() {
+        return idUsuario;
     }
 
-    public void setIdCliente(Cliente idCliente) {
-        this.idCliente = idCliente;
+    public void setIdUsuario(Usuario idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
     public Producto getIdProducto() {
@@ -64,7 +64,7 @@ public class DetallesPedido {
     @Override
     public String toString() {
         return "DetallesPedido{" +
-                "idCliente=" + idCliente +
+                "idCliente=" + idUsuario +
                 ", idProducto=" + idProducto +
                 ", cantidad=" + cantidad +
                 ", subtotal=" + subtotal +

@@ -1,7 +1,8 @@
 package org.example.controller;
 
-import org.example.model.dao.ProductoDAO;
+import org.example.model.dao.ProductosDAO;
 import org.example.model.entity.Producto;
+import org.example.model.entity.Proveedor;
 import org.example.view.UsuarioVista;
 
 import javax.swing.*;
@@ -11,12 +12,12 @@ import java.util.List;
 public class UsuarioControlador {
 
     private final UsuarioVista vista;
-    private final ProductoDAO productoDAO;
+    private final ProductosDAO productoDAO;
     private final List<Producto> carrito; // Lista para manejar productos en el carrito
 
     public UsuarioControlador(UsuarioVista vista) {
         this.vista = vista;
-        this.productoDAO = new ProductoDAO();
+        this.productoDAO = new ProductosDAO();
         this.carrito = new ArrayList<>();
 
         inicializarEventos();
@@ -67,12 +68,12 @@ public class UsuarioControlador {
 
     private void agregarProductoAlCarrito(int filaSeleccionada) {
         try {
-            int idProducto = (int) vista.getTablaProductos().getValueAt(filaSeleccionada, 0);
+            int idProducto = (int) vista.getTablaProductos().getValueAt(filaSeleccionada,0);
             String nombreProducto = (String) vista.getTablaProductos().getValueAt(filaSeleccionada, 1);
             double precio = (double) vista.getTablaProductos().getValueAt(filaSeleccionada, 2);
 
             // Crear un producto para el carrito
-            Producto producto = new Producto(idProducto, nombreProducto, precio, 1 ); // Cantidad inicial 1
+            Producto producto = new Producto(); // Cantidad inicial 1
             carrito.add(producto);
             vista.mostrarCarrito(carrito); // Actualizar la tabla del carrito
 

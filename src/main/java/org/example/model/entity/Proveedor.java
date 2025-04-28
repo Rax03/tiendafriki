@@ -1,5 +1,4 @@
 package org.example.model.entity;
-
 public class Proveedor {
     private int id;
     private String nombre;
@@ -7,9 +6,11 @@ public class Proveedor {
     private String telefono;
     private String email;
 
+    // Constructor por defecto
     public Proveedor() {
     }
 
+    // Constructor con parámetros
     public Proveedor(int id, String nombre, String direccion, String telefono, String email) {
         this.id = id;
         this.nombre = nombre;
@@ -18,6 +19,7 @@ public class Proveedor {
         this.email = email;
     }
 
+    // Getters y Setters
     public int getId() {
         return id;
     }
@@ -31,7 +33,11 @@ public class Proveedor {
     }
 
     public void setNombre(String nombre) {
-        this.nombre = nombre;
+        if (nombre != null && !nombre.trim().isEmpty()) {
+            this.nombre = nombre;
+        } else {
+            throw new IllegalArgumentException("El nombre del proveedor no puede estar vacío.");
+        }
     }
 
     public String getDireccion() {
@@ -39,7 +45,11 @@ public class Proveedor {
     }
 
     public void setDireccion(String direccion) {
-        this.direccion = direccion;
+        if (direccion != null && !direccion.trim().isEmpty()) {
+            this.direccion = direccion;
+        } else {
+            throw new IllegalArgumentException("La dirección del proveedor no puede estar vacía.");
+        }
     }
 
     public String getTelefono() {
@@ -47,7 +57,11 @@ public class Proveedor {
     }
 
     public void setTelefono(String telefono) {
-        this.telefono = telefono;
+        if (telefono != null && !telefono.trim().isEmpty()) {
+            this.telefono = telefono;
+        } else {
+            throw new IllegalArgumentException("El teléfono del proveedor no puede estar vacío.");
+        }
     }
 
     public String getEmail() {
@@ -55,17 +69,16 @@ public class Proveedor {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        if (email != null && !email.trim().isEmpty()) {
+            this.email = email;
+        } else {
+            throw new IllegalArgumentException("El email del proveedor no puede estar vacío.");
+        }
     }
 
+    // Método toString (usado en JComboBox)
     @Override
     public String toString() {
-        return "Proveedores{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", direccion='" + direccion + '\'' +
-                ", telefono='" + telefono + '\'' +
-                ", email='" + email + '\'' +
-                '}';
+        return nombre;
     }
 }

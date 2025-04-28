@@ -75,7 +75,8 @@ public class LoginControlador {
     private void abrirVentanaRegistro() {
         try {
             RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
-            registroVista.setVisible(true);
+            new RegistroUsuarioControlador(registroVista); // ✅ Conecta eventos aquí
+            registroVista.setVisible(true); // ✅ Luego muestra la vista
             vista.dispose();
         } catch (Exception e) {
             mostrarError("Error al abrir la ventana de registro", e);
@@ -100,9 +101,8 @@ public class LoginControlador {
         }
 
         try {
-            // Asegúrate de que el constructor de UsuarioVista acepte los argumentos adecuados
             UsuarioVista usuarioVista = new UsuarioVista(usuario.getNombre(), usuario.getEmail(), usuario.getId());
-            new UsuarioControlador(usuarioVista, usuario); // Vincular la vista con el controlador correspondiente
+            new UsuarioControlador(usuarioVista);
             usuarioVista.setVisible(true);
             vista.dispose();
         } catch (IllegalArgumentException e) {

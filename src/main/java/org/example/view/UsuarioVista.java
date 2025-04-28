@@ -1,6 +1,5 @@
 package org.example.view;
 
-import org.example.model.entity.Pedido;
 import org.example.model.entity.Producto;
 
 import javax.swing.*;
@@ -10,20 +9,38 @@ import java.util.List;
 
 public class UsuarioVista extends JFrame {
 
+    // Datos del usuario
+    private String nombreUsuario;
+    private String correoUsuario;
+    private int totalPedidos;
+
     // Componentes principales
     private JTable tablaProductos;
     private JTable tablaCarrito;
     private DefaultTableModel modeloProductos;
     private DefaultTableModel modeloCarrito;
 
-    // Botones
-    private JButton btnBuscar;
-    private JButton btnFinalizarCompra;
-    private JButton btnVaciarCarrito;
+    // Botones y campos de búsqueda
     private JTextField campoBusqueda;
+    private JButton btnBuscar;
+    private JButton btnAgregarCarrito;
+    private JButton btnEliminarCarrito;
+    private JButton btnFinalizarCompra;
+    private JButton btnVerHistorial;
+    private JButton btnVaciarCarrito;
 
+    // Constructor sin parámetros (para mantener compatibilidad)
     public UsuarioVista() {
-        setTitle("Tienda Friki");
+        this("Usuario", "correo@email.com", 0); // Valores por defecto si no se pasan parámetros
+    }
+
+    // Constructor con datos del usuario
+    public UsuarioVista(String nombreUsuario, String correoUsuario, int totalPedidos) {
+        this.nombreUsuario = nombreUsuario;
+        this.correoUsuario = correoUsuario;
+        this.totalPedidos = totalPedidos;
+
+        setTitle("Tienda Friki - Bienvenido, " + nombreUsuario);
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -31,11 +48,15 @@ public class UsuarioVista extends JFrame {
         // Panel principal
         JPanel panelPrincipal = new JPanel(new BorderLayout());
 
-        // Panel de búsqueda
-        JPanel panelBusqueda = crearPanelBusqueda();
-        panelPrincipal.add(panelBusqueda, BorderLayout.NORTH);
+        // Panel de bienvenida
+        JPanel panelBienvenida = crearPanelBienvenida();
+        panelPrincipal.add(panelBienvenida, BorderLayout.NORTH);
 
-        // Pestañas principales
+        // Panel de búsqueda y botones principales
+        JPanel panelBusqueda = crearPanelBusqueda();
+        panelPrincipal.add(panelBusqueda, BorderLayout.CENTER);
+
+        // Pestañas para Productos y Carrito
         JTabbedPane pestañas = new JTabbedPane();
         pestañas.setFont(new Font("Arial", Font.BOLD, 14));
 
@@ -45,7 +66,7 @@ public class UsuarioVista extends JFrame {
 
         panelPrincipal.add(pestañas, BorderLayout.CENTER);
 
-        // Panel de botones
+        // Panel de botones para el carrito
         JPanel panelBotones = crearPanelBotones();
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
@@ -54,9 +75,29 @@ public class UsuarioVista extends JFrame {
         setVisible(true);
     }
 
+    private JPanel crearPanelBienvenida() {
+        JPanel panel = new JPanel(new GridLayout(1, 3));
+        panel.setBackground(new Color(52, 58, 64));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel lblNombre = new JLabel("Usuario: " + nombreUsuario);
+        JLabel lblCorreo = new JLabel("Correo: " + correoUsuario);
+        JLabel lblPedidos = new JLabel("Total Pedidos: " + totalPedidos);
+
+        lblNombre.setForeground(Color.WHITE);
+        lblCorreo.setForeground(Color.WHITE);
+        lblPedidos.setForeground(Color.WHITE);
+
+        panel.add(lblNombre);
+        panel.add(lblCorreo);
+        panel.add(lblPedidos);
+
+        return panel;
+    }
+
     private JPanel crearPanelBusqueda() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JLabel lblBuscar = new JLabel("Buscar:");
+        JLabel lblBuscar = new JLabel("Buscar Producto:");
         campoBusqueda = new JTextField(20);
         btnBuscar = new JButton("Buscar");
         panel.add(lblBuscar);
@@ -67,10 +108,17 @@ public class UsuarioVista extends JFrame {
 
     private JPanel crearPanelBotones() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        btnAgregarCarrito = new JButton("Agregar al Carrito");
+        btnEliminarCarrito = new JButton("Eliminar del Carrito");
         btnFinalizarCompra = new JButton("Finalizar Compra");
         btnVaciarCarrito = new JButton("Vaciar Carrito");
+        btnVerHistorial = new JButton("Ver Historial");
+
+        panel.add(btnAgregarCarrito);
+        panel.add(btnEliminarCarrito);
         panel.add(btnFinalizarCompra);
         panel.add(btnVaciarCarrito);
+        panel.add(btnVerHistorial);
         return panel;
     }
 
@@ -99,7 +147,7 @@ public class UsuarioVista extends JFrame {
         modeloProductos.setRowCount(0);
         for (Producto producto : productos) {
             modeloProductos.addRow(new Object[]{
-                    producto.getId(),
+                    producto.getId_producto(),
                     producto.getNombre(),
                     producto.getPrecio(),
                     producto.getStock()
@@ -111,7 +159,7 @@ public class UsuarioVista extends JFrame {
         modeloCarrito.setRowCount(0);
         for (Producto producto : carrito) {
             modeloCarrito.addRow(new Object[]{
-                    producto.getId(),
+                    producto.getId_producto(),
                     producto.getNombre(),
                     producto.getPrecio(),
                     1 // Inicialmente se agrega un producto con cantidad 1
@@ -123,6 +171,7 @@ public class UsuarioVista extends JFrame {
         modeloCarrito.setRowCount(0);
     }
 
+    // Métodos para acceder a los componentes de la vista
     public JTextField getCampoBusqueda() {
         return campoBusqueda;
     }
@@ -131,12 +180,24 @@ public class UsuarioVista extends JFrame {
         return btnBuscar;
     }
 
+    public JButton getBtnAgregarCarrito() {
+        return btnAgregarCarrito;
+    }
+
+    public JButton getBtnEliminarCarrito() {
+        return btnEliminarCarrito;
+    }
+
     public JButton getBtnFinalizarCompra() {
         return btnFinalizarCompra;
     }
 
     public JButton getBtnVaciarCarrito() {
         return btnVaciarCarrito;
+    }
+
+    public JButton getBtnVerHistorial() {
+        return btnVerHistorial;
     }
 
     public JTable getTablaProductos() {

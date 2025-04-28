@@ -1,20 +1,24 @@
 package org.example.view;
 
-import org.example.model.dao.ProductoDAO;
+import org.example.model.dao.ProductosDAO;
 import org.example.model.entity.Categoria;
 import org.example.model.entity.Producto;
+import org.example.model.entity.Proveedor;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoVista extends JFrame {
+
     private JTable tablaProductos;
     private DefaultTableModel modeloTabla;
-    private ProductoDAO productoDAO;
+    private ProductosDAO productosDAO;
+    private JButton btnAgregar;
+    private JButton btnEditar;
+    private JButton btnEliminar;
 
     public ProductoVista() {
         setTitle("Gestión de Productos");
@@ -22,35 +26,28 @@ public class ProductoVista extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        productoDAO = new ProductoDAO();
+        productosDAO = new ProductosDAO();
 
-        // Configurar panel principal
         JPanel panelPrincipal = new JPanel(new BorderLayout());
         JLabel titulo = new JLabel("Gestión de Productos", JLabel.CENTER);
         titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
         titulo.setForeground(Color.WHITE);
         panelPrincipal.setBackground(new Color(34, 34, 34));
 
-        // Configurar la tabla
-        modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre", "Descripción", "Precio", "Stock", "Categoría", "Imagen"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Hacer las celdas no editables
+        modeloTabla = new DefaultTableModel(new String[]{"ID", "Nombre", "Precio", "Cantidad", "Categoría", "Proveedor", "Imagen"}, 0) {
+            public Class<?> getColumnClass(int column) {
+                return (column == 6) ? Icon.class : Object.class;
             }
         };
+
         tablaProductos = new JTable(modeloTabla);
-        tablaProductos.setRowHeight(60); // Ajustar la altura de las filas para mostrar imágenes
-        tablaProductos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tablaProductos.setRowHeight(60);
         JScrollPane scrollTabla = new JScrollPane(tablaProductos);
 
-        // Configurar renderizador para la columna de imágenes
-        tablaProductos.getColumnModel().getColumn(6).setCellRenderer(new ImageRenderer());
-
-        // Configurar botones CRUD
         JPanel panelBotones = new JPanel(new FlowLayout());
-        JButton btnAgregar = new JButton("Agregar");
-        JButton btnEditar = new JButton("Editar");
-        JButton btnEliminar = new JButton("Eliminar");
+        btnAgregar = new JButton("Agregar");
+        btnEditar = new JButton("Editar");
+        btnEliminar = new JButton("Eliminar");
         estilizarBoton(btnAgregar);
         estilizarBoton(btnEditar);
         estilizarBoton(btnEliminar);
@@ -63,75 +60,109 @@ public class ProductoVista extends JFrame {
         panelBotones.add(btnEditar);
         panelBotones.add(btnEliminar);
 
-        // Llenar la tabla con los datos de los productos
         llenarTablaProductos();
 
-        // Agregar componentes al panel principal
         panelPrincipal.add(titulo, BorderLayout.NORTH);
         panelPrincipal.add(scrollTabla, BorderLayout.CENTER);
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
-        // Agregar panel principal al JFrame
         add(panelPrincipal);
         setVisible(true);
     }
 
-    private void llenarTablaProductos() {
-        modeloTabla.setRowCount(0); // Limpiar la tabla antes de llenarla
-        List<Producto> productos = productoDAO.obtenerTodosLosProductos();
+    public void llenarTablaProductos() {
+        modeloTabla.setRowCount(0);
+        List<Producto> productos = productosDAO.obtenerTodosLosProductos();
         for (Producto producto : productos) {
+            ImageIcon icono = new ImageIcon(producto.getImagen());
+            Image imagen = icono.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
             modeloTabla.addRow(new Object[]{
-                    producto.getId(),
+                    producto.getId_producto(),
                     producto.getNombre(),
-                    producto.getDescripcion(),
-                    "$" + producto.getPrecio(),
+                    producto.getPrecio(),
                     producto.getStock(),
                     producto.getId_categoria().getNombre(),
-                    producto.getImagen() // Ruta de la imagen
+                    producto.getProveedores(),
+                    new ImageIcon(imagen)
             });
         }
     }
 
-    private void mostrarFormularioAgregar() {
-        // Crear el formulario para agregar un producto
+    public void mostrarFormularioAgregar() {
+        // Campos de texto para los otros campos
         JTextField txtNombre = new JTextField();
-        JTextField txtDescripcion = new JTextField();
         JTextField txtPrecio = new JTextField();
-        JTextField txtStock = new JTextField();
-        JTextField txtImagen = new JTextField();
-        JComboBox<Categoria> cmbCategoria = new JComboBox<>(new Categoria[]{
-                new Categoria(1, "Figuras"),
-                new Categoria(2, "Videojuegos"),
-                new Categoria(3, "Ropa")
+        JTextField txtCantidad = new JTextField();
+
+        // JComboBox para seleccionar la categoría
+        JComboBox<Categoria> comboCategoria = new JComboBox<>();
+        // JComboBox para seleccionar el proveedor
+        JComboBox<Proveedor> comboProveedor = new JComboBox<>();
+
+        // Cargar las categorías y proveedores en los JComboBox
+        cargarCategorias(comboCategoria);
+        cargarProveedores(comboProveedor);
+
+        // Etiqueta para la imagen
+        JLabel lblImagen = new JLabel("Sin imagen");
+        JButton btnSeleccionarImagen = new JButton("Seleccionar Imagen");
+        final String[] rutaImagen = {null};
+
+        btnSeleccionarImagen.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                rutaImagen[0] = fileChooser.getSelectedFile().getAbsolutePath();
+                lblImagen.setText(fileChooser.getSelectedFile().getName());
+            }
         });
 
-        JPanel panelFormulario = new JPanel(new GridLayout(7, 2, 10, 10));
+        // Panel del formulario con 6 filas y 2 columnas
+        JPanel panelFormulario = new JPanel(new GridLayout(6, 2, 10, 10));
         panelFormulario.add(new JLabel("Nombre:"));
         panelFormulario.add(txtNombre);
-        panelFormulario.add(new JLabel("Descripción:"));
-        panelFormulario.add(txtDescripcion);
         panelFormulario.add(new JLabel("Precio:"));
         panelFormulario.add(txtPrecio);
-        panelFormulario.add(new JLabel("Stock:"));
-        panelFormulario.add(txtStock);
-        panelFormulario.add(new JLabel("Imagen (ruta):"));
-        panelFormulario.add(txtImagen);
+        panelFormulario.add(new JLabel("Cantidad:"));
+        panelFormulario.add(txtCantidad);
         panelFormulario.add(new JLabel("Categoría:"));
-        panelFormulario.add(cmbCategoria);
+        panelFormulario.add(comboCategoria);
+        panelFormulario.add(new JLabel("Proveedor:"));
+        panelFormulario.add(comboProveedor);
+        panelFormulario.add(new JLabel("Imagen:"));
+        JPanel panelImagen = new JPanel(new BorderLayout());
+        panelImagen.add(lblImagen, BorderLayout.CENTER);
+        panelImagen.add(btnSeleccionarImagen, BorderLayout.EAST);
+        panelFormulario.add(panelImagen);
 
+        // Mostrar el cuadro de diálogo para agregar producto
         int opcion = JOptionPane.showConfirmDialog(this, panelFormulario, "Agregar Producto", JOptionPane.OK_CANCEL_OPTION);
         if (opcion == JOptionPane.OK_OPTION) {
             try {
+                // Obtener la categoría y proveedor seleccionados
+                Categoria categoria = (Categoria) comboCategoria.getSelectedItem();
+                Proveedor proveedor = (Proveedor) comboProveedor.getSelectedItem();
+
+                // Crear la lista de proveedores
+                List<Proveedor> proveedores = new ArrayList<>();
+                proveedores.add(proveedor);
+
+                // Crear el producto
                 Producto producto = new Producto(
                         0,
                         txtNombre.getText(),
-                        txtDescripcion.getText(),
+                        "",
                         Double.parseDouble(txtPrecio.getText()),
-                        Integer.parseInt(txtStock.getText()),
-                        txtImagen.getText(), // Ruta de la imagen ingresada
-                        (Categoria) cmbCategoria.getSelectedItem()
+                        Integer.parseInt(txtCantidad.getText()),
+                        "",
+                        categoria,
+                        proveedores
                 );
-                boolean exito = productoDAO.agregarProducto(producto);
+
+                producto.setImagen(rutaImagen[0]);
+
+                // Agregar el producto a la base de datos
+                boolean exito = productosDAO.agregarProducto(producto);
                 if (exito) {
                     JOptionPane.showMessageDialog(this, "Producto agregado correctamente.");
                     llenarTablaProductos();
@@ -144,7 +175,23 @@ public class ProductoVista extends JFrame {
         }
     }
 
-    private void mostrarFormularioEditar() {
+    private void cargarCategorias(JComboBox<Categoria> comboCategoria) {
+        // Obtener todas las categorías desde el DAO
+        List<Categoria> categorias = productosDAO.obtenerCategorias();
+        for (Categoria categoria : categorias) {
+            comboCategoria.addItem(categoria); // Añadir la categoría al combo
+        }
+    }
+
+    private void cargarProveedores(JComboBox<Proveedor> comboProveedor) {
+        // Obtener todos los proveedores desde el DAO
+        List<Proveedor> proveedores = productosDAO.obtenerProveedores();
+        for (Proveedor proveedor : proveedores) {
+            comboProveedor.addItem(proveedor); // Añadir el proveedor al combo
+        }
+    }
+
+    public void mostrarFormularioEditar() {
         int filaSeleccionada = tablaProductos.getSelectedRow();
         if (filaSeleccionada < 0) {
             JOptionPane.showMessageDialog(this, "Selecciona un producto para editar.", "Error", JOptionPane.WARNING_MESSAGE);
@@ -152,48 +199,59 @@ public class ProductoVista extends JFrame {
         }
 
         int idProducto = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        Producto producto = productoDAO.obtenerProductoPorId(idProducto);
+        Producto producto = productosDAO.obtenerProductoPorId(idProducto);
         if (producto == null) {
             JOptionPane.showMessageDialog(this, "Error al obtener el producto.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         JTextField txtNombre = new JTextField(producto.getNombre());
-        JTextField txtDescripcion = new JTextField(producto.getDescripcion());
         JTextField txtPrecio = new JTextField(String.valueOf(producto.getPrecio()));
-        JTextField txtStock = new JTextField(String.valueOf(producto.getStock()));
-        JTextField txtImagen = new JTextField(producto.getImagen());
-        JComboBox<Categoria> cmbCategoria = new JComboBox<>(new Categoria[]{
-                new Categoria(1, "Figuras"),
-                new Categoria(2, "Videojuegos"),
-                new Categoria(3, "Ropa")
+        JTextField txtCantidad = new JTextField(String.valueOf(producto.getStock()));
+        JTextField txtCategoria = new JTextField(producto.getId_categoria().getNombre());
+        JTextField txtProveedor = new JTextField(producto.getProveedores().get(0).getNombre());
+
+        JLabel lblImagen = new JLabel(producto.getImagen() != null ? producto.getImagen() : "Sin imagen");
+        JButton btnSeleccionarImagen = new JButton("Cambiar Imagen");
+        final String[] rutaImagen = {producto.getImagen()};
+
+        btnSeleccionarImagen.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                rutaImagen[0] = fileChooser.getSelectedFile().getAbsolutePath();
+                lblImagen.setText(fileChooser.getSelectedFile().getName());
+            }
         });
 
-        JPanel panelFormulario = new JPanel(new GridLayout(7, 2, 10, 10));
+        JPanel panelFormulario = new JPanel(new GridLayout(6, 2, 10, 10));
         panelFormulario.add(new JLabel("Nombre:"));
         panelFormulario.add(txtNombre);
-        panelFormulario.add(new JLabel("Descripción:"));
-        panelFormulario.add(txtDescripcion);
         panelFormulario.add(new JLabel("Precio:"));
         panelFormulario.add(txtPrecio);
-        panelFormulario.add(new JLabel("Stock:"));
-        panelFormulario.add(txtStock);
-        panelFormulario.add(new JLabel("Imagen (ruta):"));
-        panelFormulario.add(txtImagen);
+        panelFormulario.add(new JLabel("Cantidad:"));
+        panelFormulario.add(txtCantidad);
         panelFormulario.add(new JLabel("Categoría:"));
-        panelFormulario.add(cmbCategoria);
+        panelFormulario.add(txtCategoria);
+        panelFormulario.add(new JLabel("Proveedor:"));
+        panelFormulario.add(txtProveedor);
+        panelFormulario.add(new JLabel("Imagen:"));
+        JPanel panelImagen = new JPanel(new BorderLayout());
+        panelImagen.add(lblImagen, BorderLayout.CENTER);
+        panelImagen.add(btnSeleccionarImagen, BorderLayout.EAST);
+        panelFormulario.add(panelImagen);
 
         int opcion = JOptionPane.showConfirmDialog(this, panelFormulario, "Editar Producto", JOptionPane.OK_CANCEL_OPTION);
         if (opcion == JOptionPane.OK_OPTION) {
             try {
                 producto.setNombre(txtNombre.getText());
-                producto.setDescripcion(txtDescripcion.getText());
                 producto.setPrecio(Double.parseDouble(txtPrecio.getText()));
-                producto.setStock(Integer.parseInt(txtStock.getText()));
-                producto.setImagen(txtImagen.getText());
-                producto.setId_categoria((Categoria) cmbCategoria.getSelectedItem());
+                producto.setStock(Integer.parseInt(txtCantidad.getText()));
+                producto.getId_categoria().setNombre(txtCategoria.getText());
+                producto.getProveedores().get(0).setNombre(txtProveedor.getText());
+                producto.setImagen(rutaImagen[0]);
 
-                boolean exito = productoDAO.actualizarProducto(producto);
+                boolean exito = productosDAO.actualizarProducto(producto);
                 if (exito) {
                     JOptionPane.showMessageDialog(this, "Producto actualizado correctamente.");
                     llenarTablaProductos();
@@ -206,7 +264,7 @@ public class ProductoVista extends JFrame {
         }
     }
 
-    private void eliminarProducto() {
+    public void eliminarProducto() {
         int filaSeleccionada = tablaProductos.getSelectedRow();
         if (filaSeleccionada < 0) {
             JOptionPane.showMessageDialog(this, "Selecciona un producto para eliminar.", "Error", JOptionPane.WARNING_MESSAGE);
@@ -217,7 +275,7 @@ public class ProductoVista extends JFrame {
         int confirmacion = JOptionPane.showConfirmDialog(this, "¿Estás seguro de eliminar este producto?",
                 "Eliminar Producto", JOptionPane.YES_NO_OPTION);
         if (confirmacion == JOptionPane.YES_OPTION) {
-            boolean exito = productoDAO.eliminarProducto(idProducto);
+            boolean exito = productosDAO.eliminarProducto(idProducto);
             if (exito) {
                 JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
                 llenarTablaProductos();
@@ -228,38 +286,21 @@ public class ProductoVista extends JFrame {
     }
 
     private void estilizarBoton(JButton boton) {
-        boton.setFont(new Font("Arial", Font.BOLD, 14)); // Fuente en negrita y tamaño 14
-        boton.setBackground(new Color(0, 153, 255)); // Azul vibrante
-        boton.setForeground(Color.WHITE); // Texto en blanco
-        boton.setFocusPainted(false); // Quitar el foco visual del botón
-        boton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2)); // Borde negro
-    }
-    private class ImageRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = new JLabel();
-            label.setHorizontalAlignment(JLabel.CENTER);
-
-            if (value != null) {
-                String imagePath = value.toString();
-                File imageFile = new File(imagePath);
-                if (imageFile.exists()) {
-                    // Cargar y redimensionar la imagen
-                    ImageIcon icon = new ImageIcon(imagePath);
-                    Image scaledImage = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
-                    label.setIcon(new ImageIcon(scaledImage));
-                } else {
-                    // Mostrar texto si la imagen no existe
-                    label.setText("Sin Imagen");
-                    label.setForeground(Color.RED);
-                }
-            } else {
-                label.setText("Sin Imagen");
-                label.setForeground(Color.RED);
-            }
-
-            return label;
-        }
+        boton.setFont(new Font("Arial", Font.BOLD, 14));
+        boton.setBackground(new Color(0, 153, 255));
+        boton.setForeground(Color.WHITE);
+        boton.setFocusPainted(false);
     }
 
+    public JButton getBtnAgregar() {
+        return btnAgregar;
+    }
+
+    public JButton getBtnEditar() {
+        return btnEditar;
+    }
+
+    public JButton getBtnEliminar() {
+        return btnEliminar;
+    }
 }

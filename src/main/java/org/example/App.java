@@ -5,14 +5,15 @@ import org.example.model.dao.UsuarioDAO;
 import org.example.model.service.LoginService;
 import org.example.view.LoginVista;
 
+import javax.swing.*;
+
 public class App {
     public static void main(String[] args) {
-        UsuarioDAO usuarioDAO = new UsuarioDAO();
-        LoginService loginService = new LoginService(usuarioDAO);
-        LoginVista loginVista = new LoginVista();
-
-        new LoginControlador(loginVista, loginService);
-
-        loginVista.setVisible(true);
+        SwingUtilities.invokeLater(() -> {
+            var loginVista = new LoginVista();
+            var loginService = new LoginService(new UsuarioDAO());
+            new LoginControlador(loginVista, loginService);
+            loginVista.setVisible(true);
+        });
     }
 }

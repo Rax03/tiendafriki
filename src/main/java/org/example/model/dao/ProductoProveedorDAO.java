@@ -16,8 +16,8 @@ public class ProductoProveedorDAO {
         String sql = "INSERT INTO producto_proveedor (id_producto, id_proveedor, precio, stock, tiempo_entrega, fecha) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, pp.getId_producto().getId());
-            stmt.setInt(2, pp.getId_proveedor().getId());
+            stmt.setInt(1, pp.getProducto().getId_producto());
+            stmt.setInt(2, pp.getProveedor().getId());
             stmt.setFloat(3, pp.getPrecio());
             stmt.setInt(4, pp.getStock());
             stmt.setInt(5, pp.getTiempoEntrega());
@@ -38,7 +38,7 @@ public class ProductoProveedorDAO {
              PreparedStatement stmt = conexion.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                Producto producto = new ProductoDAO().obtenerProductoPorId(rs.getInt("id_producto"));
+                Producto producto = new ProductosDAO().obtenerProductoPorId(rs.getInt("id_producto"));
                 Proveedor proveedor = new ProveedorDAO().obtenerProveedorPorId(rs.getInt("id_proveedor"));
                 ProductoProveedor pp = new ProductoProveedor(
                         producto,
@@ -65,8 +65,8 @@ public class ProductoProveedorDAO {
             stmt.setInt(2, pp.getStock());
             stmt.setInt(3, pp.getTiempoEntrega());
             stmt.setDate(4, new java.sql.Date(pp.getFecha().getTime()));
-            stmt.setInt(5, pp.getId_producto().getId());
-            stmt.setInt(6, pp.getId_proveedor().getId());
+            stmt.setInt(5, pp.getProducto().getId_producto());
+            stmt.setInt(6, pp.getProveedor().getId());
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {

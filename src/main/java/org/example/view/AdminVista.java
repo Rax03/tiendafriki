@@ -5,7 +5,7 @@ import java.awt.*;
 
 public class AdminVista extends JFrame {
 
-    private JButton btnProductos, btnProveedores, btnCategorias, btnClientes, btnPedidos, btnUsuarios, btnCerrarSesion;
+    private JButton btnProductos, btnProveedores, btnCategorias,  btnPedidos, btnUsuarios, btnCerrarSesion;
 
     public AdminVista() {
         // Configuración principal de la ventana
@@ -50,7 +50,6 @@ public class AdminVista extends JFrame {
         btnProductos = crearBoton("🎮 Productos", new Color(0, 153, 255));
         btnProveedores = crearBoton("🚚 Proveedores", new Color(102, 204, 0));
         btnCategorias = crearBoton("📂 Categorías", new Color(255, 102, 102));
-        btnClientes = crearBoton("🧑‍🤝‍🧑 Clientes", new Color(255, 153, 0));
         btnPedidos = crearBoton("📦 Pedidos", new Color(102, 102, 255));
         btnUsuarios = crearBoton("👨‍💻 Usuarios", new Color(204, 102, 255));
 
@@ -58,7 +57,6 @@ public class AdminVista extends JFrame {
         panelPrincipal.add(btnProductos);
         panelPrincipal.add(btnProveedores);
         panelPrincipal.add(btnCategorias);
-        panelPrincipal.add(btnClientes);
         panelPrincipal.add(btnPedidos);
         panelPrincipal.add(btnUsuarios);
 
@@ -96,9 +94,6 @@ public class AdminVista extends JFrame {
         return btnCategorias;
     }
 
-    public JButton getBtnClientes() {
-        return btnClientes;
-    }
 
     public JButton getBtnPedidos() {
         return btnPedidos;
