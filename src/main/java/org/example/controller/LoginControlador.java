@@ -6,7 +6,6 @@ import org.example.view.AdminVista;
 import org.example.view.RegistroUsuarioVista;
 import org.example.view.UsuarioVista;
 import org.example.view.LoginVista;
-
 import javax.swing.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,21 +94,13 @@ public class LoginControlador {
     }
 
     private void abrirUsuarioVista(Usuario usuario) {
-        if (usuario == null) {
-            mostrarMensaje("El usuario no existe o no se pudo autenticar.");
-            return;
-        }
-
         try {
-            UsuarioVista usuarioVista = new UsuarioVista(usuario.getNombre(), usuario.getEmail(), usuario.getId());
-            new UsuarioControlador(usuarioVista);
+            UsuarioVista usuarioVista = new UsuarioVista();
+            new UsuarioControlador(usuarioVista, usuario);
             usuarioVista.setVisible(true);
             vista.dispose();
-        } catch (IllegalArgumentException e) {
-            mostrarMensaje("Se produjo un error con los datos del usuario.");
-            logger.log(Level.WARNING, "Datos incorrectos al abrir UsuarioVista para el usuario: " + usuario.getEmail(), e);
         } catch (Exception e) {
-            mostrarError("Error al abrir la vista de cliente", e);
+            mostrarError("Error al abrir la vista de usuario", e);
         }
     }
 

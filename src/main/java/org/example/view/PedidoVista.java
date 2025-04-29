@@ -111,10 +111,11 @@ public class PedidoVista extends JFrame {
                         Integer.parseInt(txtIdCliente.getText()),
                         fechaPedido,
                         cmbEstado.getSelectedItem().toString(),
-                        Double.parseDouble(txtTotal.getText())
+                        Float.parseFloat(txtTotal.getText())
+
                 );
 
-                if (pedidoDAO.registrarPedido(pedido)) {
+                if (pedido.getIdPedido()<0) {
                     JOptionPane.showMessageDialog(this, "Pedido registrado exitosamente.");
                     llenarTablaPedidos();
                 } else {
@@ -160,7 +161,7 @@ public class PedidoVista extends JFrame {
         if (opcion == JOptionPane.OK_OPTION) {
             try {
                 pedidoExistente.setIdCliente(Integer.parseInt(txtIdCliente.getText()));
-                pedidoExistente.setTotal(Double.parseDouble(txtTotal.getText()));
+                pedidoExistente.setTotal(Float.parseFloat(txtTotal.getText())); 
                 pedidoExistente.setEstado(cmbEstado.getSelectedItem().toString());
 
                 if (pedidoDAO.actualizarPedido(pedidoExistente)) {

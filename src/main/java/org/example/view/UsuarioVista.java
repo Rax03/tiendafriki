@@ -1,210 +1,173 @@
 package org.example.view;
 
-import org.example.model.entity.Producto;
+import org.example.model.dao.DetallePedidoDAO;
+import org.example.model.entity.Pedido;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioVista extends JFrame {
 
-    // Datos del usuario
-    private String nombreUsuario;
-    private String correoUsuario;
-    private int totalPedidos;
+    private JTabbedPane pestañas;
+    private JPanel panelProductos, panelCarrito;
+    private JButton btnFinalizarPedido, btnCerrarSesion, btnVerHistorial;
+    private JTable tablaProductos, tablaCarrito;
+    private DefaultTableModel modeloTablaProductos, modeloTablaCarrito;
+    private DetallePedidoDAO detallesPedidoDAO;
+    private List<String[]> carrito; // Lista para almacenar los productos seleccionados
 
-    // Componentes principales
-    private JTable tablaProductos;
-    private JTable tablaCarrito;
-    private DefaultTableModel modeloProductos;
-    private DefaultTableModel modeloCarrito;
-
-    // Botones y campos de búsqueda
-    private JTextField campoBusqueda;
-    private JButton btnBuscar;
-    private JButton btnAgregarCarrito;
-    private JButton btnEliminarCarrito;
-    private JButton btnFinalizarCompra;
-    private JButton btnVerHistorial;
-    private JButton btnVaciarCarrito;
-
-    // Constructor sin parámetros (para mantener compatibilidad)
-    public UsuarioVista() {
-        this("Usuario", "correo@email.com", 0); // Valores por defecto si no se pasan parámetros
+    public List<String[]> getCarrito() {
+        return carrito;
     }
 
-    // Constructor con datos del usuario
-    public UsuarioVista(String nombreUsuario, String correoUsuario, int totalPedidos) {
-        this.nombreUsuario = nombreUsuario;
-        this.correoUsuario = correoUsuario;
-        this.totalPedidos = totalPedidos;
-
-        setTitle("Tienda Friki - Bienvenido, " + nombreUsuario);
-        setSize(800, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    public UsuarioVista() {
+        setTitle("Tienda Friki - Usuario Estándar");
+        setSize(900, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Panel principal
-        JPanel panelPrincipal = new JPanel(new BorderLayout());
-
-        // Panel de bienvenida
-        JPanel panelBienvenida = crearPanelBienvenida();
-        panelPrincipal.add(panelBienvenida, BorderLayout.NORTH);
-
-        // Panel de búsqueda y botones principales
-        JPanel panelBusqueda = crearPanelBusqueda();
-        panelPrincipal.add(panelBusqueda, BorderLayout.CENTER);
-
-        // Pestañas para Productos y Carrito
-        JTabbedPane pestañas = new JTabbedPane();
-        pestañas.setFont(new Font("Arial", Font.BOLD, 14));
-
-        inicializarTablas();
-        pestañas.addTab("Productos", new JScrollPane(tablaProductos));
-        pestañas.addTab("Carrito", new JScrollPane(tablaCarrito));
-
-        panelPrincipal.add(pestañas, BorderLayout.CENTER);
-
-        // Panel de botones para el carrito
-        JPanel panelBotones = crearPanelBotones();
-        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
-
-        // Configuración final
-        add(panelPrincipal);
-        setVisible(true);
+        detallesPedidoDAO = new DetallePedidoDAO(); // Inicializar el DAO
+        carrito = new ArrayList<>(); // Inicializar el carrito
+        inicializarComponentes();
+        cargarProductosDesdeBD(); // Cargar productos al iniciar la vista
     }
 
-    private JPanel crearPanelBienvenida() {
-        JPanel panel = new JPanel(new GridLayout(1, 3));
-        panel.setBackground(new Color(52, 58, 64));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    private void inicializarComponentes() {
+        pestañas = new JTabbedPane();
 
-        JLabel lblNombre = new JLabel("Usuario: " + nombreUsuario);
-        JLabel lblCorreo = new JLabel("Correo: " + correoUsuario);
-        JLabel lblPedidos = new JLabel("Total Pedidos: " + totalPedidos);
+        panelProductos = new JPanel(new BorderLayout());
+        panelCarrito = new JPanel(new BorderLayout());
 
-        lblNombre.setForeground(Color.WHITE);
-        lblCorreo.setForeground(Color.WHITE);
-        lblPedidos.setForeground(Color.WHITE);
 
-        panel.add(lblNombre);
-        panel.add(lblCorreo);
-        panel.add(lblPedidos);
+        crearMenu();
+        crearTablaProductos();
+        crearTablaCarrito();
+        crearPanelBotones();
 
-        return panel;
+        pestañas.addTab("Productos", panelProductos);
+        pestañas.addTab("Carrito", panelCarrito);
+
+        add(pestañas, BorderLayout.CENTER);
     }
 
-    private JPanel crearPanelBusqueda() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JLabel lblBuscar = new JLabel("Buscar Producto:");
-        campoBusqueda = new JTextField(20);
-        btnBuscar = new JButton("Buscar");
-        panel.add(lblBuscar);
-        panel.add(campoBusqueda);
-        panel.add(btnBuscar);
-        return panel;
+    private void crearMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menuOpciones = new JMenu("Opciones");
+        JMenuItem itemCerrarSesion = new JMenuItem("Cerrar Sesión");
+
+        itemCerrarSesion.addActionListener(e -> cerrarSesion());
+
+        menuOpciones.add(itemCerrarSesion);
+        menuBar.add(menuOpciones);
+        setJMenuBar(menuBar);
     }
 
-    private JPanel crearPanelBotones() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        btnAgregarCarrito = new JButton("Agregar al Carrito");
-        btnEliminarCarrito = new JButton("Eliminar del Carrito");
-        btnFinalizarCompra = new JButton("Finalizar Compra");
-        btnVaciarCarrito = new JButton("Vaciar Carrito");
+    private void crearTablaProductos() {
+        modeloTablaProductos = new DefaultTableModel(new String[]{"ID", "Nombre", "Precio", "Stock"}, 0);
+        tablaProductos = new JTable(modeloTablaProductos);
+
+        // Detectar clic en una fila para agregar producto al carrito
+        tablaProductos.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int filaSeleccionada = tablaProductos.getSelectedRow();
+                if (filaSeleccionada != -1) {
+                    String[] productoSeleccionado = new String[]{
+                            modeloTablaProductos.getValueAt(filaSeleccionada, 0).toString(),  // ID
+                            modeloTablaProductos.getValueAt(filaSeleccionada, 1).toString(),  // Nombre
+                            modeloTablaProductos.getValueAt(filaSeleccionada, 2).toString(),  // Precio
+                            modeloTablaProductos.getValueAt(filaSeleccionada, 3).toString()   // Stock
+                    };
+                    carrito.add(productoSeleccionado);
+                    actualizarTablaCarrito(); // Refrescar la tabla del carrito
+                    JOptionPane.showMessageDialog(null, "Producto agregado al carrito: " + productoSeleccionado[1]);
+                }
+            }
+        });
+
+        panelProductos.add(new JScrollPane(tablaProductos), BorderLayout.CENTER);
+    }
+
+    private void crearTablaCarrito() {
+        modeloTablaCarrito = new DefaultTableModel(new String[]{"ID", "Nombre", "Precio", "Stock"}, 0);
+        tablaCarrito = new JTable(modeloTablaCarrito);
+        panelCarrito.add(new JScrollPane(tablaCarrito), BorderLayout.CENTER);
+    }
+
+    public void actualizarTablaCarrito() {
+        modeloTablaCarrito.setRowCount(0);
+        for (String[] producto : carrito) {
+            modeloTablaCarrito.addRow(producto);
+        }
+    }
+
+    private void crearPanelBotones() {
+        JPanel panelBotones = new JPanel(new FlowLayout());
+
+        btnFinalizarPedido = new JButton("Finalizar Pedido");
         btnVerHistorial = new JButton("Ver Historial");
+        btnCerrarSesion = new JButton("Cerrar Sesión");
 
-        panel.add(btnAgregarCarrito);
-        panel.add(btnEliminarCarrito);
-        panel.add(btnFinalizarCompra);
-        panel.add(btnVaciarCarrito);
-        panel.add(btnVerHistorial);
-        return panel;
+        panelBotones.add(btnFinalizarPedido);
+        panelBotones.add(btnVerHistorial);
+        panelBotones.add(btnCerrarSesion);
+
+        // Agregar eventos básicos a los botones
+        btnCerrarSesion.addActionListener(e -> cerrarSesion());
+        btnVerHistorial.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mostrando historial de pedidos..."));
+        btnFinalizarPedido.addActionListener(e -> JOptionPane.showMessageDialog(this, "Pedido finalizado."));
+
+        add(panelBotones, BorderLayout.SOUTH);
     }
 
-    private void inicializarTablas() {
-        // Tabla de productos
-        modeloProductos = new DefaultTableModel(new String[]{"ID", "Nombre", "Precio", "Stock"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        tablaProductos = new JTable(modeloProductos);
-
-        // Tabla del carrito
-        modeloCarrito = new DefaultTableModel(new String[]{"ID", "Nombre", "Precio", "Cantidad"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 3; // Solo la columna cantidad es editable
-            }
-        };
-        tablaCarrito = new JTable(modeloCarrito);
+    private void cerrarSesion() {
+        JOptionPane.showMessageDialog(this, "Cerrando sesión...");
+        dispose();
+        new LoginVista(); // Redirige a la pantalla de inicio de sesión
     }
 
-    // Métodos para actualizar las tablas
-    public void mostrarProductos(List<Producto> productos) {
-        modeloProductos.setRowCount(0);
-        for (Producto producto : productos) {
-            modeloProductos.addRow(new Object[]{
-                    producto.getId_producto(),
-                    producto.getNombre(),
-                    producto.getPrecio(),
-                    producto.getStock()
-            });
+    private void cargarProductosDesdeBD() {
+        List<String[]> productos = detallesPedidoDAO.obtenerProductosDesdeBD();
+        if (productos != null && !productos.isEmpty()) {
+            actualizarTablaProductos(productos);
+        } else {
+            JOptionPane.showMessageDialog(this, "No hay productos disponibles en la base de datos.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
-    public void mostrarCarrito(List<Producto> carrito) {
-        modeloCarrito.setRowCount(0);
-        for (Producto producto : carrito) {
-            modeloCarrito.addRow(new Object[]{
-                    producto.getId_producto(),
-                    producto.getNombre(),
-                    producto.getPrecio(),
-                    1 // Inicialmente se agrega un producto con cantidad 1
-            });
+    public void actualizarTablaProductos(List<String[]> productos) {
+        modeloTablaProductos.setRowCount(0);
+        for (String[] producto : productos) {
+            modeloTablaProductos.addRow(producto);
         }
     }
-
-    public void vaciarCarrito() {
-        modeloCarrito.setRowCount(0);
-    }
-
-    // Métodos para acceder a los componentes de la vista
-    public JTextField getCampoBusqueda() {
-        return campoBusqueda;
-    }
-
-    public JButton getBtnBuscar() {
-        return btnBuscar;
-    }
-
-    public JButton getBtnAgregarCarrito() {
-        return btnAgregarCarrito;
-    }
-
-    public JButton getBtnEliminarCarrito() {
-        return btnEliminarCarrito;
-    }
-
-    public JButton getBtnFinalizarCompra() {
-        return btnFinalizarCompra;
-    }
-
-    public JButton getBtnVaciarCarrito() {
-        return btnVaciarCarrito;
+    public JButton getBtnFinalizarPedido() {
+        return btnFinalizarPedido;
     }
 
     public JButton getBtnVerHistorial() {
         return btnVerHistorial;
     }
 
-    public JTable getTablaProductos() {
-        return tablaProductos;
+    public JButton getBtnCerrarSesion() {
+        return btnCerrarSesion;
     }
 
-    public JTable getTablaCarrito() {
-        return tablaCarrito;
+
+    public void mostrarHistorial(List<Pedido> historial) {
+
+        StringBuilder sb = new StringBuilder();
+        for (Pedido pedido : historial) {
+            sb.append("ID Pedido: ").append(pedido.getIdPedido())
+                    .append(", Fecha: ").append(pedido.getFechaPedido())
+                    .append(", Estado: ").append(pedido.getEstado())
+                    .append(", Total: ").append(pedido.getTotal()).append("\n");
+        }
+        JOptionPane.showMessageDialog(this, sb.toString(), "Historial de Pedidos", JOptionPane.INFORMATION_MESSAGE);
     }
 }

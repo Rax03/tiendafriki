@@ -152,7 +152,7 @@ public class ProductoVista extends JFrame {
                         0,
                         txtNombre.getText(),
                         "",
-                        Double.parseDouble(txtPrecio.getText()),
+                        Float.parseFloat(txtPrecio.getText()),
                         Integer.parseInt(txtCantidad.getText()),
                         "",
                         categoria,
@@ -245,7 +245,7 @@ public class ProductoVista extends JFrame {
         if (opcion == JOptionPane.OK_OPTION) {
             try {
                 producto.setNombre(txtNombre.getText());
-                producto.setPrecio(Double.parseDouble(txtPrecio.getText()));
+                producto.setPrecio(Float.parseFloat(txtPrecio.getText()));
                 producto.setStock(Integer.parseInt(txtCantidad.getText()));
                 producto.getId_categoria().setNombre(txtCategoria.getText());
                 producto.getProveedores().get(0).setNombre(txtProveedor.getText());

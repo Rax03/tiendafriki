@@ -30,6 +30,10 @@ public class Usuario {
         this.rol = rol;
         this.setFechaRegistro(fechaRegistro); // Validación de fecha en setter
     }
+    public Usuario(int id) {
+        this.id = id;
+    }
+
 
     // Getters y Setters
     public int getId() { return id; }

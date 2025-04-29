@@ -7,22 +7,30 @@ public class Pedido {
     private int idCliente;
     private LocalDateTime fechaPedido;
     private String estado;
-    private double total;
+    private Float total= 0.0f;
 
     public Pedido() {
     }
+    public Pedido(int idPedido, int idUsuario, LocalDateTime fecha) {
+        this.idPedido = idPedido;
+        this.idCliente = idUsuario;
+        this.fechaPedido = fecha;
+    }
 
-    public Pedido(int idPedido, int idCliente, LocalDateTime fechaPedido, String estado, double total) {
+
+    public Pedido(int idPedido, int idCliente, LocalDateTime fechaPedido, String estado, Float total) {
         this.idPedido = idPedido;
         this.idCliente = idCliente;
         this.fechaPedido = fechaPedido;
         this.estado = estado;
         this.total = total;
     }
+    public Pedido(int idPedido, int idCliente, LocalDateTime fechaPedido, String estado) {}
 
     public int getIdPedido() {
         return idPedido;
     }
+
 
     public void setIdPedido(int idPedido) {
         this.idPedido = idPedido;
@@ -52,11 +60,11 @@ public class Pedido {
         this.estado = estado;
     }
 
-    public double getTotal() {
+    public float getTotal() {
         return total;
     }
 
-    public void setTotal(double total) {
+    public void setTotal(Float total) {
         this.total = total;
     }
 
