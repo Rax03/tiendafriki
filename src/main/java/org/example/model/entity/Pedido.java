@@ -1,6 +1,7 @@
 package org.example.model.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class Pedido {
     private int idPedido;
@@ -8,6 +9,8 @@ public class Pedido {
     private LocalDateTime fechaPedido;
     private String estado;
     private Float total= 0.0f;
+    private List<DetallesPedido> detalles;  // Lista de detalles de los productos en el pedido
+
 
     public Pedido() {
     }
@@ -66,6 +69,13 @@ public class Pedido {
 
     public void setTotal(Float total) {
         this.total = total;
+    }
+
+    public List<DetallesPedido> getDetalles() {
+        return detalles;
+    }
+    public void setDetalles(List<DetallesPedido> detalles) {
+        this.detalles = detalles;
     }
 
     @Override

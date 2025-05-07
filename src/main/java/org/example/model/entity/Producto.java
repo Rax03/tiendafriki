@@ -10,12 +10,15 @@ public class Producto {
     private float precio;
     private int stock;
     private String imagen;
-    private Categoria id_categoria;
+    private Categoria id_categoria; // Se recomienda que el atributo sea "categoria" para mayor claridad
     private List<Proveedor> proveedores;
 
+    // Constructor vacío
     public Producto() {
     }
-    public Producto(int id_producto, String nombre, String descripcion, float precio, int stock, String imagen, Categoria id_categoria, List<Proveedor> proveedores) {
+
+   public Producto(int id_producto, String nombre, String descripcion, float precio, int stock, String imagen,
+                    Categoria id_categoria, List<Proveedor> proveedores) {
         this.id_producto = id_producto;
         this.nombre = nombre;
         this.descripcion = descripcion;
@@ -26,19 +29,28 @@ public class Producto {
         this.proveedores = proveedores;
     }
 
-    public Producto(int id_producto, String nombre, String descripcion, float precio, int stock, String imagen) {
-        this.id_producto = id_producto;
+
+
+    // Constructor para creaciones rápidas (sin id ni proveedores)
+    public Producto(String nombre, String descripcion, float precio, int stock, String imagen, Categoria id_categoria) {
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.precio = precio;
         this.stock = stock;
         this.imagen = imagen;
+        this.id_categoria = id_categoria;
     }
+
+    // Constructor básico solo con nombre (útil para búsquedas o por conveniencia)
     public Producto(String nombre) {
         this.nombre = nombre;
     }
 
+    public Producto(String nombre, float precio, String s) {
 
+    }
+
+    // Getters y setters
     public int getId_producto() {
         return id_producto;
     }
@@ -78,6 +90,8 @@ public class Producto {
     public void setStock(int stock) {
         this.stock = stock;
     }
+
+
 
     public String getImagen() {
         return imagen;

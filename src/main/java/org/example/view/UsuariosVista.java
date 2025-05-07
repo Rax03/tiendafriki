@@ -9,6 +9,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
+import static org.example.utils.HashUtil.generarSalt;
+
 public class UsuariosVista extends JFrame {
 
     private JTable tablaUsuarios;
@@ -120,9 +122,11 @@ public class UsuariosVista extends JFrame {
                         txtNombre.getText(),
                         txtEmail.getText(),
                         new String(txtContraseña.getPassword()),
+                        generarSalt(),
                         (Rol) cmbRol.getSelectedItem(),
                         java.time.LocalDate.now()
                 );
+
 
                 if (usuarioDAO.registrarUsuario(usuario)) {
                     JOptionPane.showMessageDialog(this, "Usuario registrado exitosamente.");

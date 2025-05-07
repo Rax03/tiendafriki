@@ -7,7 +7,7 @@ public class Proveedor {
     private String email;
 
     // Constructor por defecto
-    public Proveedor() {
+    public Proveedor(int idProveedor, String nombre) {
     }
 
     // Constructor con parámetros

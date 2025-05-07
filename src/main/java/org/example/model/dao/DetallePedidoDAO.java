@@ -24,7 +24,7 @@ public class DetallePedidoDAO {
             stmt.setInt(2, detalle.getIdUsuario());
             stmt.setInt(3, detalle.getIdProducto());
             stmt.setInt(4, detalle.getCantidad());
-            stmt.setFloat(5, detalle.getSubtotal());
+            stmt.setFloat(5, detalle.getPrecio());
             stmt.setString(6, detalle.getNombreProducto());
 
             return stmt.executeUpdate() > 0;
@@ -52,7 +52,8 @@ public class DetallePedidoDAO {
                             rs.getInt("id_usuario"),
                             rs.getInt("id_producto"),
                             rs.getInt("cantidad"),
-                            rs.getFloat("subtotal")
+                            rs.getFloat("subtotal"),
+                            rs.getString("nombre")
                     );
                     detalle.setNombreProducto(rs.getString("nombre_producto"));
                     detalles.add(detalle);
@@ -64,28 +65,42 @@ public class DetallePedidoDAO {
         return detalles;
     }
     public boolean registrarDetallePedido(DetallesPedido detalle) {
-        if (detalle == null || detalle.getIdUsuario() <= 0 || detalle.getIdProducto() <= 0) {
+        if (detalle == null || detalle.getIdProducto() <= 0 || detalle.getCantidad() <= 0 || detalle.getIdPedido() <= 0) {
             throw new IllegalArgumentException("Datos del pedido inválidos.");
         }
 
-        String sql = "INSERT INTO detalles_pedidos (id_pedido, id_cliente, id_producto, cantidad, subtotal, nombre) VALUES (?, ?, ?, ?, ?, ?)";
+        // Primero verifica si el pedido existe antes de insertar los detalles
+        String verificarPedidoSQL = "SELECT COUNT(*) FROM pedidos WHERE id_pedido = ?";
+        String sql = "INSERT INTO detalles_pedidos (id_pedido, id_producto, cantidad, subtotal, nombre) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement verificarPedidoStmt = conexion.prepareStatement(verificarPedidoSQL);
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
 
+            // Verificar si id_pedido existe
+            verificarPedidoStmt.setInt(1, detalle.getIdPedido());
+            try (ResultSet rs = verificarPedidoStmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) == 0) {
+                    System.err.println("❌ Error: El pedido con ID " + detalle.getIdPedido() + " no existe.");
+                    return false;
+                }
+            }
+
+            // Insertar detalle del pedido
             stmt.setInt(1, detalle.getIdPedido());
-            stmt.setInt(2, detalle.getIdUsuario());
-            stmt.setInt(3, detalle.getIdProducto());
-            stmt.setInt(4, detalle.getCantidad());
-            stmt.setFloat(5, detalle.getSubtotal());
-            stmt.setString(6, detalle.getNombreProducto());
+            stmt.setInt(2, detalle.getIdProducto());
+            stmt.setInt(3, detalle.getCantidad());
+            stmt.setFloat(4, detalle.getPrecio());
+            stmt.setString(5, detalle.getNombreProducto());
 
             return stmt.executeUpdate() > 0;
+
         } catch (SQLException e) {
-            System.err.println("Error al registrar detalle de pedido: " + e.getMessage());
+            System.err.println("❌ Error al registrar detalle de pedido: " + e.getMessage());
             return false;
         }
     }
+
 
     public List<String[]> obtenerProductosDesdeBD() {
         String sql = "SELECT id_producto, nombre, precio, stock FROM productos";

@@ -1,13 +1,13 @@
 package org.example.model.service;
 
-import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Usuario;
 
 public class LoginService {
-    private UsuarioDAO usuarioDAO;
+    private final UsuarioService usuarioService;
 
-    public LoginService(UsuarioDAO usuarioDAO) {
-        this.usuarioDAO = usuarioDAO;
+    // Constructor recibe UsuarioService, no solo UsuarioDAO
+    public LoginService(UsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
     }
 
     /**
@@ -17,12 +17,11 @@ public class LoginService {
      * @return Usuario autenticado o null si la autenticación falla.
      */
     public Usuario autenticarUsuario(String email, String contraseña) {
-        Usuario usuario = usuarioDAO.buscarPorEmail(email);
-
-        // Validar usuario encontrado y autenticar
-        if (usuario != null && usuarioDAO.autenticarUsuario(email, contraseña)) {
-            return usuario;
+        // Se podría agregar validación extra si es necesario antes de delegar
+        if (email == null || email.isEmpty() || contraseña == null || contraseña.isEmpty()) {
+            return null; // O lanzar excepción personalizada
         }
-        return null; // Retorna null si la autenticación falla
+
+        return usuarioService.autenticarUsuario(email, contraseña);
     }
 }

@@ -44,6 +44,20 @@ public class ProductoVista extends JFrame {
         tablaProductos.setRowHeight(60);
         JScrollPane scrollTabla = new JScrollPane(tablaProductos);
 
+        // Agregar MouseListener para detectar clic en la tabla
+        tablaProductos.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int filaSeleccionada = tablaProductos.getSelectedRow();
+                if (filaSeleccionada >= 0) {
+                    int idProducto = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+                    Producto producto = productosDAO.obtenerProductoPorId(idProducto);
+                    if (producto != null) {
+                        mostrarDetallesProducto(producto);
+                    }
+                }
+            }
+        });
+
         JPanel panelBotones = new JPanel(new FlowLayout());
         btnAgregar = new JButton("Agregar");
         btnEditar = new JButton("Editar");
@@ -73,20 +87,41 @@ public class ProductoVista extends JFrame {
     public void llenarTablaProductos() {
         modeloTabla.setRowCount(0);
         List<Producto> productos = productosDAO.obtenerTodosLosProductos();
+
         for (Producto producto : productos) {
             ImageIcon icono = new ImageIcon(producto.getImagen());
             Image imagen = icono.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
+
+            // Asegurar la categoría no sea null
+            String nombreCategoria = (producto.getId_categoria() != null) ? producto.getId_categoria().getNombre() : "Sin categoría";
+
+            // Convertir lista de proveedores en texto legible
+            String proveedores = "Sin proveedor";
+            if (producto.getProveedores() != null && !producto.getProveedores().isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (Proveedor prov : producto.getProveedores()) {
+                    sb.append(prov.getNombre()).append(", ");
+                }
+                proveedores = sb.substring(0, sb.length() - 2);
+            }
+
             modeloTabla.addRow(new Object[]{
                     producto.getId_producto(),
                     producto.getNombre(),
                     producto.getPrecio(),
                     producto.getStock(),
-                    producto.getId_categoria().getNombre(),
-                    producto.getProveedores(),
+                    nombreCategoria,
+                    proveedores,
                     new ImageIcon(imagen)
             });
+
+            // Ocultar la columna ID
+            tablaProductos.getColumnModel().getColumn(0).setMinWidth(0);
+            tablaProductos.getColumnModel().getColumn(0).setMaxWidth(0);
+            tablaProductos.getColumnModel().getColumn(0).setWidth(0);
         }
     }
+
 
     public void mostrarFormularioAgregar() {
         // Campos de texto para los otros campos
@@ -161,6 +196,8 @@ public class ProductoVista extends JFrame {
 
                 producto.setImagen(rutaImagen[0]);
 
+
+
                 // Agregar el producto a la base de datos
                 boolean exito = productosDAO.agregarProducto(producto);
                 if (exito) {
@@ -176,12 +213,22 @@ public class ProductoVista extends JFrame {
     }
 
     private void cargarCategorias(JComboBox<Categoria> comboCategoria) {
+        // Limpiar el ComboBox antes de llenarlo
+        comboCategoria.removeAllItems();
+
         // Obtener todas las categorías desde el DAO
         List<Categoria> categorias = productosDAO.obtenerCategorias();
+
+        if (categorias == null || categorias.isEmpty()) {
+            System.err.println("⚠ No se encontraron categorías.");
+            return; // Salir si no hay categorías disponibles
+        }
+
         for (Categoria categoria : categorias) {
-            comboCategoria.addItem(categoria); // Añadir la categoría al combo
+            comboCategoria.addItem(categoria); // Añadir cada categoría al combo
         }
     }
+
 
     private void cargarProveedores(JComboBox<Proveedor> comboProveedor) {
         // Obtener todos los proveedores desde el DAO
@@ -303,4 +350,47 @@ public class ProductoVista extends JFrame {
     public JButton getBtnEliminar() {
         return btnEliminar;
     }
+
+    public void mostrarDetallesProducto(Producto producto) {
+        // Crear un panel para mostrar los detalles
+        JPanel panelDetalles = new JPanel(new GridLayout(6, 2, 10, 10));
+        panelDetalles.add(new JLabel("ID Producto:"));
+        panelDetalles.add(new JLabel(String.valueOf(producto.getId_producto())));
+        panelDetalles.add(new JLabel("Nombre:"));
+        panelDetalles.add(new JLabel(producto.getNombre()));
+        panelDetalles.add(new JLabel("Precio:"));
+        panelDetalles.add(new JLabel(String.valueOf(producto.getPrecio())));
+        panelDetalles.add(new JLabel("Cantidad:"));
+        panelDetalles.add(new JLabel(String.valueOf(producto.getStock())));
+        panelDetalles.add(new JLabel("Categoría:"));
+        panelDetalles.add(new JLabel(producto.getId_categoria().getNombre()));
+        panelDetalles.add(new JLabel("Proveedor:"));
+        panelDetalles.add(new JLabel(producto.getProveedores().get(0).getNombre()));
+
+        // Si la imagen está disponible, agregarla
+        if (producto.getImagen() != null) {
+            ImageIcon icono = new ImageIcon(producto.getImagen());
+            Image imagen = icono.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            JLabel lblImagen = new JLabel(new ImageIcon(imagen));
+            panelDetalles.add(new JLabel("Imagen:"));
+            panelDetalles.add(lblImagen);
+        } else {
+            panelDetalles.add(new JLabel("Imagen:"));
+            panelDetalles.add(new JLabel("No disponible"));
+        }
+
+        // Mostrar un cuadro de diálogo con los detalles del producto
+        JOptionPane.showMessageDialog(this, panelDetalles, "Detalles del Producto", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public Producto getProductoSeleccionado() {
+        int filaSeleccionada = tablaProductos.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            return null; // No hay fila seleccionada
+        }
+
+        int idProducto = (int) modeloTabla.getValueAt(filaSeleccionada, 0); // Supone que la primera columna contiene el ID
+        return productosDAO.obtenerProductoPorId(idProducto);
+    }
+
 }

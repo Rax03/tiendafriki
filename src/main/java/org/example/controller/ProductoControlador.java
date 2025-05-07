@@ -5,11 +5,12 @@ import org.example.model.entity.Producto;
 import org.example.view.ProductoVista;
 
 import javax.swing.*;
+import java.util.Optional;
 
 public class ProductoControlador {
 
-    private ProductoVista productoVista;
-    private ProductosDAO productosDAO;
+    private final ProductoVista productoVista;
+    private final ProductosDAO productosDAO;
 
     public ProductoControlador() {
         // Inicialización de la vista y el DAO
@@ -32,26 +33,66 @@ public class ProductoControlador {
     }
 
     private void mostrarFormularioAgregar() {
-        // Mostrar el formulario para agregar un producto en la vista
-        productoVista.mostrarFormularioAgregar();
-
-        // Después de agregar el producto, actualizar la tabla
-        productoVista.llenarTablaProductos();
+        try {
+            productoVista.mostrarFormularioAgregar();
+            productoVista.llenarTablaProductos(); // Actualizar la tabla después de la acción
+        } catch (Exception ex) {
+            mostrarError("Error al agregar producto: " + ex.getMessage());
+        }
     }
 
     private void mostrarFormularioEditar() {
-        // Mostrar el formulario para editar un producto seleccionado
-        productoVista.mostrarFormularioEditar();
+        // Verificar si hay un producto seleccionado
+        Optional<Producto> productoSeleccionado = Optional.ofNullable(productoVista.getProductoSeleccionado());
+        if (productoSeleccionado.isEmpty()) {
+            mostrarAdvertencia("Debes seleccionar un producto para editar.");
+            return;
+        }
 
-        // Después de editar el producto, actualizar la tabla
-        productoVista.llenarTablaProductos();
+        try {
+            productoVista.mostrarFormularioEditar();
+            productoVista.llenarTablaProductos(); // Actualizar tabla después de la edición
+        } catch (Exception ex) {
+            mostrarError("Error al editar producto: " + ex.getMessage());
+        }
     }
 
     private void eliminarProducto() {
-        // Eliminar el producto seleccionado
-        productoVista.eliminarProducto();
+        // Verificar si hay un producto seleccionado
+        Optional<Producto> productoSeleccionado = Optional.ofNullable(productoVista.getProductoSeleccionado());
+        if (productoSeleccionado.isEmpty()) {
+            mostrarAdvertencia("Debes seleccionar un producto para eliminar.");
+            return;
+        }
 
-        // Después de eliminar el producto, actualizar la tabla
-        productoVista.llenarTablaProductos();
+        int confirmacion = JOptionPane.showConfirmDialog(
+                productoVista,
+                "¿Estás seguro de que quieres eliminar este producto?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            try {
+                productosDAO.eliminarProducto(productoSeleccionado.get().getId_producto());
+                productoVista.llenarTablaProductos(); // Actualizar la tabla después de la eliminación
+                mostrarMensaje("Producto eliminado correctamente.");
+            } catch (Exception ex) {
+                mostrarError("Error al eliminar producto: " + ex.getMessage());
+            }
+        }
+    }
+
+    // Métodos auxiliares para mostrar mensajes
+    private void mostrarError(String mensaje) {
+        JOptionPane.showMessageDialog(productoVista, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void mostrarAdvertencia(String mensaje) {
+        JOptionPane.showMessageDialog(productoVista, mensaje, "Advertencia", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(productoVista, mensaje, "Información", JOptionPane.INFORMATION_MESSAGE);
     }
 }

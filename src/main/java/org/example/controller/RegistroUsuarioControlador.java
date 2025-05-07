@@ -5,6 +5,7 @@ import org.example.model.entity.Enum.Rol;
 import org.example.model.entity.Usuario;
 import org.example.model.service.LoginService;
 import org.example.model.service.UsuarioService;
+import org.example.utils.HashUtil;
 import org.example.view.LoginVista;
 import org.example.view.RegistroUsuarioVista;
 
@@ -23,85 +24,80 @@ public class RegistroUsuarioControlador {
     }
 
     private void inicializarEventos() {
-        System.out.println("📌 Registrando eventos de botones...");
-
-        if (vista.getBotonRegistrar() == null || vista.getBotonCancelar() == null) {
-            System.out.println("❌ Error: Botones no fueron creados correctamente.");
-            return;
-        }
-
-        vista.getBotonRegistrar().addActionListener(e -> {
-            System.out.println("✅ Botón Registrar presionado");
-            registrarUsuario();
-        });
-
-        vista.getBotonCancelar().addActionListener(e -> {
-            System.out.println("❌ Botón Cancelar presionado");
-            cancelarRegistro();
-        });
+        vista.getBotonRegistrar().addActionListener(e -> registrarUsuario());
+        vista.getBotonCancelar().addActionListener(e -> cancelarRegistro());
     }
 
     private void registrarUsuario() {
-        System.out.println("📌 Iniciando registro de usuario...");
+        String nombre = vista.getNombre();
+        String email = vista.getEmail();
+        String contraseña = vista.getContraseña();
+        String confirmarContraseña = vista.getConfirmarContraseña();
+        String rolSeleccionado = vista.getRolSeleccionado();
 
+        if (!validarCampos(nombre, email, contraseña, confirmarContraseña)) {
+            return;
+        }
+
+        if (!HashUtil.validarEmail(email)) {
+            JOptionPane.showMessageDialog(vista, "El correo no tiene un formato válido.");
+            return;
+        }
+
+        if (!contraseña.equals(confirmarContraseña)) {
+            JOptionPane.showMessageDialog(vista, "Las contraseñas no coinciden.");
+            return;
+        }
+
+        if (usuarioService.correoExiste(email)) {
+            JOptionPane.showMessageDialog(vista, "El correo ya está registrado.");
+            return;
+        }
+
+        // Validar y asignar rol
+        Rol rol = obtenerRol(rolSeleccionado);
+        if (rol == null) {
+            JOptionPane.showMessageDialog(vista, "Rol no válido.");
+            return;
+        }
+
+        Usuario usuario = new Usuario(0, nombre, email, contraseña, null, rol, LocalDate.now());
+
+        if (usuarioService.registrarUsuario(usuario)) {
+            JOptionPane.showMessageDialog(vista, "Usuario registrado exitosamente.");
+            vista.dispose();
+            abrirInicioSesion();
+        } else {
+            JOptionPane.showMessageDialog(vista, "Error al registrar usuario.");
+        }
+    }
+
+
+    private boolean validarCampos(String nombre, String email, String contraseña, String confirmarContraseña) {
+        if (nombre.isEmpty() || email.isEmpty() || contraseña.isEmpty() || confirmarContraseña.isEmpty()) {
+            JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios.");
+            return false;
+        }
+        return true;
+    }
+
+    private Rol obtenerRol(String rolSeleccionado) {
         try {
-            String nombre = vista.getNombre();
-            String email = vista.getEmail();
-            String contraseña = vista.getContraseña();
-            String confirmarContraseña = vista.getConfirmarContraseña();
-            String rolSeleccionado = vista.getRolSeleccionado();
-
-            if (nombre.isEmpty() || email.isEmpty() || contraseña.isEmpty() || confirmarContraseña.isEmpty()) {
-                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios.");
-                return;
-            }
-
-            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                JOptionPane.showMessageDialog(vista, "El correo no tiene un formato válido.");
-                return;
-            }
-
-            if (!contraseña.equals(confirmarContraseña)) {
-                JOptionPane.showMessageDialog(vista, "Las contraseñas no coinciden.");
-                return;
-            }
-
-            if (usuarioService.correoExiste(email)) {
-                JOptionPane.showMessageDialog(vista, "El correo ya está registrado.");
-                return;
-            }
-
-            Rol rol = Rol.valueOf(rolSeleccionado);
-            String contraseñaHash = org.mindrot.jbcrypt.BCrypt.hashpw(contraseña, org.mindrot.jbcrypt.BCrypt.gensalt());
-
-            Usuario usuario = new Usuario(0, nombre, email, contraseñaHash, rol, LocalDate.now());
-
-            System.out.println("🔄 Intentando registrar usuario...");
-
-            if (usuarioService.registrarUsuario(usuario.getNombre(), usuario.getEmail(), usuario.getPassword(), usuario.getRol())) {
-                JOptionPane.showMessageDialog(vista, "✅ Usuario registrado exitosamente como " + usuario.getRol() + ".");
-                vista.dispose();
-                abrirInicioSesion();
-            } else {
-                JOptionPane.showMessageDialog(vista, "❌ Error al registrar usuario. Inténtalo nuevamente.");
-            }
-        } catch (Exception e) {
-            System.err.println("🚨 Error al registrar usuario: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(vista, "Se produjo un error inesperado: " + e.getMessage());
+            return Rol.valueOf(rolSeleccionado);
+        } catch (IllegalArgumentException e) {
+            return null; // Rol no válido
         }
     }
 
     private void cancelarRegistro() {
-        System.out.println("🔄 Redirigiendo a Login...");
         vista.dispose();
         abrirInicioSesion();
     }
 
     private void abrirInicioSesion() {
-        System.out.println("📌 Abriendo pantalla de inicio de sesión...");
         LoginVista loginVista = new LoginVista();
-        new LoginControlador(loginVista, new LoginService(new UsuarioDAO()));
+        LoginService loginService = new LoginService(new UsuarioService(new UsuarioDAO()));
+        new LoginControlador(loginVista, loginService);  // Llamar al constructor con los dos parámetros
         loginVista.setVisible(true);
     }
 }

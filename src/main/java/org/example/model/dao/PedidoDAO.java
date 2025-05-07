@@ -1,156 +1,158 @@
 package org.example.model.dao;
 
 import org.example.model.conection.ConexionBD;
+import org.example.model.entity.DetallesPedido;
 import org.example.model.entity.Pedido;
 import org.example.model.entity.Producto;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class PedidoDAO {
 
-    // Obtener todos los pedidos
     public List<Pedido> obtenerTodosLosPedidos() {
-        String sql = "SELECT * FROM pedidos";
         List<Pedido> pedidos = new ArrayList<>();
+        String sql = "SELECT p.id_pedido, p.fecha_pedido, p.estado, p.total, u.nombre AS nombre_cliente, u.id AS id_cliente " +
+                "FROM pedidos p " +
+                "JOIN usuarios u ON p.id_cliente = u.id";
+
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
+
             while (rs.next()) {
-                pedidos.add(new Pedido(
-                        rs.getInt("id_pedido"),
-                        rs.getInt("id_cliente"),
-                        rs.getTimestamp("fecha_pedido").toLocalDateTime(),
-                        rs.getString("estado"),
-                        rs.getFloat("total")
-                ));
+                int idPedido = rs.getInt("id_pedido");
+                int idCliente = rs.getInt("id_cliente");
+                LocalDateTime fechaPedido = rs.getTimestamp("fecha_pedido").toLocalDateTime();
+                String estado = rs.getString("estado");
+                float total = rs.getFloat("total");
+                String nombreCliente = rs.getString("nombre_cliente");
+
+                Pedido pedido = new Pedido(idPedido, idCliente, fechaPedido, estado, total);
+                // Utilizar la misma conexión para obtener los detalles
+                pedido.setDetalles(obtenerDetallesPedido(conexion, idPedido));
+                pedidos.add(pedido);
+
+                System.out.println("Pedido ID: " + idPedido + " | Cliente: " + nombreCliente);
             }
+
         } catch (SQLException e) {
-            System.err.println("Error al obtener los pedidos: " + e.getMessage());
+            e.printStackTrace();
         }
         return pedidos;
     }
 
-    // Obtener pedidos por cliente
-    public List<Pedido> obtenerPedidosPorCliente(int idCliente) {
-        if (idCliente <= 0) {
-            throw new IllegalArgumentException("El ID del cliente debe ser mayor a cero.");
+    public List<DetallesPedido> obtenerDetallesPedido(Connection conexion, int idPedido) {
+        if (idPedido <= 0) {
+            System.err.println("❌ Error: El ID de pedido debe ser mayor a 0.");
+            return new ArrayList<>();
         }
 
-        String sql = "SELECT * FROM pedidos WHERE id_cliente = ?";
-        List<Pedido> pedidos = new ArrayList<>();
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, idCliente);
+        List<DetallesPedido> detalles = new ArrayList<>();
+        String sql = "SELECT dp.id_producto, dp.cantidad, dp.precio, p.nombre " +
+                "FROM detalles_pedidos dp " +
+                "JOIN productos p ON dp.id_producto = p.id_producto " +
+                "WHERE dp.id_pedido = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idPedido);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    pedidos.add(new Pedido(
-                            rs.getInt("id_pedido"),
-                            rs.getInt("id_cliente"),
-                            rs.getTimestamp("fecha_pedido").toLocalDateTime(),
-                            rs.getString("estado"),
-                            rs.getFloat("total")
-                    ));
+                    DetallesPedido detalle = new DetallesPedido(
+                            rs.getInt("id_producto"),
+                            idPedido,
+                            0,  // No se recupera el ID de usuario aquí
+                            rs.getInt("cantidad"),
+                            rs.getFloat("precio"),
+                            rs.getString("nombre")
+                    );
+                    detalles.add(detalle);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al obtener los pedidos del cliente: " + e.getMessage());
+            System.err.println("❌ Error al obtener detalles del pedido: " + e.getMessage());
         }
-        return pedidos;
+        return detalles;
     }
 
-    // Obtener pedidos por estado
-    public List<Pedido> obtenerPedidosPorEstado(String estado) {
-        if (estado == null || estado.trim().isEmpty()) {
-            throw new IllegalArgumentException("El estado no puede ser nulo o vacío.");
-        }
+    public int registrarPedido(Pedido pedido, int idUsuario, List<Producto> carrito) {
+        String sqlPedido = "INSERT INTO pedidos (id_cliente, fecha_pedido, estado, total) VALUES (?, ?, ?, ?)";
+        // La consulta sigue esperando el campo "cantidad", pero ya no usaremos valores variables, se insertará 1.
+        String sqlDetalle = "INSERT INTO detalles_pedidos (id_pedido, id_producto, cantidad, precio) VALUES (?, ?, ?, ?)";
+        String sqlActualizarStock = "UPDATE productos SET stock = stock - ? WHERE id_producto = ?";
+        String sqlVerificarProducto = "SELECT COUNT(*) FROM productos WHERE id_producto = ?";
 
-        String sql = "SELECT * FROM pedidos WHERE estado = ?";
-        List<Pedido> pedidos = new ArrayList<>();
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setString(1, estado);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    pedidos.add(new Pedido(
-                            rs.getInt("id_pedido"),
-                            rs.getInt("id_cliente"),
-                            rs.getTimestamp("fecha_pedido").toLocalDateTime(),
-                            rs.getString("estado"),
-                            rs.getFloat("total")
-                    ));
+        try (Connection conexion = ConexionBD.conectar()) {
+            conexion.setAutoCommit(false); // Iniciar transacción
+
+            int idPedido = -1;
+
+            try (PreparedStatement stmtPedido = conexion.prepareStatement(sqlPedido, Statement.RETURN_GENERATED_KEYS)) {
+                stmtPedido.setInt(1, idUsuario);
+                stmtPedido.setTimestamp(2, Timestamp.valueOf(pedido.getFechaPedido()));
+                stmtPedido.setString(3, pedido.getEstado());
+                stmtPedido.setDouble(4, pedido.getTotal());
+                stmtPedido.executeUpdate();
+
+                // Obtener el ID del pedido generado
+                try (ResultSet rs = stmtPedido.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        idPedido = rs.getInt(1);
+                    } else {
+                        conexion.rollback();
+                        System.err.println("❌ Error: No se pudo obtener el ID del pedido.");
+                        return -1;
+                    }
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener los pedidos con estado " + estado + ": " + e.getMessage());
-        }
-        return pedidos;
-    }
 
-    // Contar pedidos
-    public int contarPedidos() {
-        String sql = "SELECT COUNT(*) FROM pedidos";
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al contar los pedidos: " + e.getMessage());
-        }
-        return 0;
-    }
+            try (PreparedStatement stmtVerificarProducto = conexion.prepareStatement(sqlVerificarProducto);
+                 PreparedStatement stmtDetalle = conexion.prepareStatement(sqlDetalle);
+                 PreparedStatement stmtStock = conexion.prepareStatement(sqlActualizarStock)) {
 
-    // Paginación de pedidos
-    public List<Pedido> obtenerPedidosPaginados(int pagina, int tamanoPagina) {
-        if (pagina <= 0 || tamanoPagina <= 0) {
-            throw new IllegalArgumentException("La página y el tamaño de página deben ser mayores a cero.");
-        }
+                for (Producto p : carrito) {
+                    // Verificar que el producto existe
+                    stmtVerificarProducto.setInt(1, p.getId_producto());
+                    try (ResultSet rs = stmtVerificarProducto.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) == 0) {
+                            conexion.rollback();
+                            System.err.println("❌ Error: El producto " + p.getNombre() + " no existe en la base de datos.");
+                            return -1;
+                        }
+                    }
 
-        String sql = "SELECT * FROM pedidos LIMIT ? OFFSET ?";
-        List<Pedido> pedidos = new ArrayList<>();
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, tamanoPagina);
-            stmt.setInt(2, (pagina - 1) * tamanoPagina);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    pedidos.add(new Pedido(
-                            rs.getInt("id_pedido"),
-                            rs.getInt("id_cliente"),
-                            rs.getTimestamp("fecha_pedido").toLocalDateTime(),
-                            rs.getString("estado"),
-                            rs.getFloat("total")
-                    ));
+                    if (p.getStock() < 1) {
+                        conexion.rollback();
+                        System.err.println("❌ Error: Stock insuficiente para " + p.getNombre());
+                        return -1;
+                    }
+
+                    // Insertar en detalles_pedidos usando 1 como cantidad (ya que quitamos el uso de 'cantidad')
+                    stmtDetalle.setInt(1, idPedido);
+                    stmtDetalle.setInt(2, p.getId_producto());
+                    stmtDetalle.setInt(3, 1); // Se fija la cantidad en 1
+                    stmtDetalle.setDouble(4, p.getPrecio());
+                    stmtDetalle.addBatch();
+
+                    // Reducir el stock del producto en 1 unidad
+                    stmtStock.setInt(1, 1);
+                    stmtStock.setInt(2, p.getId_producto());
+                    stmtStock.addBatch();
                 }
+
+                stmtDetalle.executeBatch();
+                stmtStock.executeBatch();
             }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener pedidos paginados: " + e.getMessage());
-        }
-        return pedidos;
-    }
 
-    // Registrar un nuevo pedido
-    public int registrarPedido(Pedido pedido) {
-        if (pedido == null || pedido.getFechaPedido() == null || pedido.getIdCliente() <= 0) {
-            throw new IllegalArgumentException("El pedido o sus datos no son válidos.");
-        }
+            conexion.commit();
+            System.out.println("✅ Pedido registrado y stock actualizado.");
+            return idPedido;
 
-        String sql = "INSERT INTO pedidos (id_cliente, fecha_pedido, estado, total) VALUES (?, ?, ?, ?)";
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, pedido.getIdCliente());
-            stmt.setTimestamp(2, Timestamp.valueOf(pedido.getFechaPedido()));
-            stmt.setString(3, pedido.getEstado());
-            stmt.setDouble(4, pedido.getTotal());
-            stmt.executeUpdate();
-            return 1;
         } catch (SQLException e) {
-            System.err.println("Error al registrar el pedido: " + e.getMessage());
-            return 0;
+            System.err.println("❌ Error en la transacción: " + e.getMessage());
+            return -1;
         }
     }
 
@@ -219,107 +221,5 @@ public class PedidoDAO {
             System.err.println("Error al obtener el pedido por ID: " + e.getMessage());
         }
         return null;
-    }
-
-    public List<String> obtenerProductosDisponibles() {
-        String sql = "SELECT nombre FROM productos WHERE stock > 0"; // Solo productos disponibles
-        List<String> productos = new ArrayList<>();
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                productos.add(rs.getString("nombre"));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener productos disponibles: " + e.getMessage());
-        }
-
-        return productos;
-    }
-    public Producto buscarProductoPorNombre(String nombre) {
-        String sql = "SELECT id_cliente, nombre, precio FROM productos WHERE nombre = ?";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setString(1, nombre);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return new Producto(
-                            rs.getInt("id"),
-                            rs.getString("nombre"),
-                            "", // Descripción vacía por ahora
-                            rs.getFloat("precio"),
-                            1, // Stock por defecto 1
-                            "imagen.png" // Imagen predeterminada
-                    );
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al buscar producto: " + e.getMessage());
-        }
-
-        return null; // Devuelve `null` si no se encuentra el producto
-    }
-
-    // Obtener el último ID de pedido de un usuario
-    public int obtenerUltimoPedidoId(int idCliente) {
-        String sql = "SELECT id_pedido FROM pedidos WHERE id_cliente = ? ORDER BY fecha_pedido DESC LIMIT 1";
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, idCliente);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("id_pedido");
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener el último ID de pedido: " + e.getMessage());
-        }
-        return -1; // Retorna -1 si no se encontró un pedido
-    }
-
-    // Obtener el total de pedidos por cliente
-
-    public int obtenerTotalPedidosPorCliente(int idCliente) {
-        String sql = "SELECT COUNT(*) FROM pedidos WHERE id_cliente = ?";
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, idCliente);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener el total de pedidos por cliente: " + e.getMessage());
-        }
-        return 0;
-    }
-
-
-    public List<Pedido> obtenerHistorialPedidos(int id) {
-
-        String sql = "SELECT * FROM pedidos WHERE id_cliente = ?";
-        List<Pedido> pedidos = new ArrayList<>();
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    pedidos.add(new Pedido(
-                            rs.getInt("id_pedido"),
-                            rs.getInt("id_cliente"),
-                            rs.getTimestamp("fecha_pedido").toLocalDateTime(),
-                            rs.getString("estado"),
-                            rs.getFloat("total")
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al obtener el historial de pedidos: " + e.getMessage());
-        }
-        return pedidos;
     }
 }

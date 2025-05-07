@@ -1,205 +1,24 @@
 package org.example.model.dao;
 
 import org.example.model.conection.ConexionBD;
-import org.example.model.entity.Categoria;
 import org.example.model.entity.Producto;
-import org.example.model.entity.ProductoProveedor;
+import org.example.model.entity.Categoria;
 import org.example.model.entity.Proveedor;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ProductosDAO {
 
-    private static final Logger logger = Logger.getLogger(ProductosDAO.class.getName());
-
-    // Obtener todos los productos con sus proveedores
-    public List<Producto> obtenerTodosLosProductos() {
-        List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT p.*, c.nombre as categoria_nombre, pr.id, pr.nombre as proveedor_nombre " +
-                "FROM Productos p " +
-                "LEFT JOIN Categorias c ON p.id_categoria = c.id_categoria " +
-                "LEFT JOIN Producto_Proveedor pp ON p.id_producto = pp.id_producto " +
-                "LEFT JOIN Proveedores pr ON pp.id_proveedor = pr.id";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                Categoria categoria = new Categoria(
-                        rs.getInt("id_categoria"),
-                        rs.getString("categoria_nombre")
-                );
-
-                // Crear la lista de proveedores
-                List<Proveedor> proveedores = new ArrayList<>();
-                String proveedorNombre = rs.getString("proveedor_nombre");
-
-                if (proveedorNombre != null && !proveedorNombre.isEmpty()) {
-                    Proveedor proveedor = new Proveedor();
-                    proveedor.setId(rs.getInt("id"));  // Cambié id_proveedor por id
-                    proveedor.setNombre(proveedorNombre);
-                    proveedores.add(proveedor);
-                } else {
-                    Proveedor proveedor = new Proveedor();
-                    proveedor.setId(rs.getInt("id"));  // Cambié id_proveedor por id
-                    proveedor.setNombre("Proveedor Desconocido");  // O puedes decidir no agregarlo
-                    proveedores.add(proveedor);
-                }
-
-                Producto producto = new Producto(
-                        rs.getInt("id_producto"),
-                        rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getFloat("precio"),
-                        rs.getInt("stock"),
-                        rs.getString("imagen"),
-                        categoria,
-                        proveedores
-                );
-
-                productos.add(producto);
-            }
-
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al obtener productos", e);
-        }
-
-        return productos;
-    }
-
-    // Buscar productos por nombre con proveedores
-    public List<Producto> buscarProductosPorNombre(String nombre) {
-        List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT p.*, c.nombre as categoria_nombre, pr.id_proveedor, pr.nombre as proveedor_nombre " +
-                "FROM Productos p " +
-                "LEFT JOIN Categorias c ON p.id_categoria = c.id_categoria " +
-                "LEFT JOIN Producto_Proveedor pp ON p.id_producto = pp.id_producto " +
-                "LEFT JOIN Proveedores pr ON pp.id_proveedor = pr.id_proveedor " +
-                "WHERE p.nombre LIKE ?";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setString(1, "%" + nombre + "%");
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Categoria categoria = new Categoria(
-                            rs.getInt("id_categoria"),
-                            rs.getString("categoria_nombre")
-                    );
-
-                    // Crear la lista de proveedores
-                    List<Proveedor> proveedores = new ArrayList<>();
-                    String proveedorNombre = rs.getString("proveedor_nombre");
-
-                    if (proveedorNombre != null && !proveedorNombre.isEmpty()) {
-                        Proveedor proveedor = new Proveedor();
-                        proveedor.setId(rs.getInt("id_proveedor"));
-                        proveedor.setNombre(proveedorNombre);
-                        proveedores.add(proveedor);
-                    } else {
-                        Proveedor proveedor = new Proveedor();
-                        proveedor.setId(rs.getInt("id_proveedor"));
-                        proveedor.setNombre("Proveedor Desconocido");
-                        proveedores.add(proveedor);
-                    }
-
-                    Producto producto = new Producto(
-                            rs.getInt("id_producto"),
-                            rs.getString("nombre"),
-                            rs.getString("descripcion"),
-                            rs.getFloat("precio"),
-                            rs.getInt("stock"),
-                            rs.getString("imagen"),
-                            categoria,
-                            proveedores
-                    );
-                    productos.add(producto);
-                }
-            }
-
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al buscar productos por nombre", e);
-        }
-
-        return productos;
-    }
-
-    private List<Proveedor> obtenerProveedoresPorProducto(int idProducto) {
-        List<Proveedor> proveedores = new ArrayList<>();
-        String sql = "SELECT pr.id, pr.nombre FROM Proveedores pr " +
-                "JOIN Producto_Proveedor pp ON pr.id = pp.id_proveedor " +
-                "WHERE pp.id_producto = ?";  // Corregido 'id_proveedor' por 'id'
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setInt(1, idProducto);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Proveedor proveedor = new Proveedor();
-                    proveedor.setId(rs.getInt("id"));
-                    proveedor.setNombre(rs.getString("nombre"));
-                    proveedores.add(proveedor);
-                }
-            }
-
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al obtener proveedores del producto", e);
-        }
-
-        return proveedores;
-    }
-
-    // Obtener un producto por ID con sus proveedores
-    public Producto obtenerProductoPorId(int idProducto) {
-        String sql = "SELECT p.*, c.nombre as categoria_nombre " +
-                "FROM Productos p " +
-                "LEFT JOIN Categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.id_producto = ?";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setInt(1, idProducto);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                Categoria categoria = new Categoria(
-                        rs.getInt("id_categoria"),
-                        rs.getString("categoria_nombre")
-                );
-
-                Producto producto = new Producto(
-                        rs.getInt("id_producto"),
-                        rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getFloat("precio"),
-                        rs.getInt("stock"),
-                        rs.getString("imagen"),
-                        categoria,
-                        obtenerProveedoresPorProducto(idProducto) // Obtener lista de proveedores para el producto
-                );
-                return producto;
-            }
-
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al obtener producto por ID", e);
-        }
-
-        return null;
-    }
-
+    /**
+     * Agrega un producto a la base de datos y asigna el ID generado al objeto.
+     *
+     * @param producto El producto a agregar.
+     * @return true si se agregó correctamente, false en caso contrario.
+     */
     public boolean agregarProducto(Producto producto) {
-        String sql = "INSERT INTO Productos (nombre, descripcion, precio, stock, imagen, id_categoria) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-
+        String sql = "INSERT INTO productos (nombre, descripcion, precio, stock, imagen, id_categoria) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -210,93 +29,30 @@ public class ProductosDAO {
             stmt.setString(5, producto.getImagen());
             stmt.setInt(6, producto.getId_categoria().getIdCategoria());
 
-            // Ejecutar la inserción del producto
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected > 0) {
-                // Obtener la ID generada para el producto
-                ResultSet generatedKeys = stmt.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    int idProducto = generatedKeys.getInt(1);  // Obtener el id_producto generado
-                    producto.setId_producto(idProducto);  // Asegúrate de tener un setter para esto
-
-                    // Ahora debes agregar las relaciones en la tabla producto_proveedor
-                    for (Proveedor proveedor : producto.getProveedores()) {
-                        // Aquí se define el precio por cada relación
-                        double precio = obtenerPrecioDeProveedorParaProducto(idProducto, proveedor); // Aquí puedes definir cómo obtener el precio.
-
-                        agregarProveedorAProducto(idProducto, proveedor.getId(), precio);
+            int filasAfectadas = stmt.executeUpdate();
+            if (filasAfectadas > 0) {
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int idProducto = rs.getInt(1);
+                        producto.setId_producto(idProducto);
+                        return true;
                     }
-                    return true;
                 }
             }
-
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al agregar producto", e);
+            System.err.println("❌ Error al agregar producto: " + e.getMessage());
         }
-
         return false;
     }
 
-
-    private double obtenerPrecioDeProveedorParaProducto(int idProducto, Proveedor proveedor) {
-        String sql = "SELECT precio FROM producto_proveedor WHERE id_producto = ? AND id_proveedor = ?";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            // Establecer parámetros
-            stmt.setInt(1, idProducto);
-            stmt.setInt(2, proveedor.getId());
-
-            // Ejecutar la consulta
-            ResultSet rs = stmt.executeQuery();
-
-            // Si encontramos el precio
-            if (rs.next()) {
-                return rs.getDouble("precio");
-            } else {
-                // Si no se encuentra, devolver un precio predeterminado (por ejemplo, 0)
-                // O puedes lanzar una excepción si consideras que el precio debería existir.
-                return 0.0;
-            }
-
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al obtener el precio de proveedor para producto", e);
-            return 0.0; // Puedes manejar el error como prefieras
-        }
-    }
-
-
-
-
-
-
-    // Método para agregar un proveedor a un producto
-    public boolean agregarProveedorAProducto(int idProducto, int idProveedor, double precio) {
-        String sql = "INSERT INTO producto_proveedor (id_producto, id_proveedor, precio) " +
-                "VALUES (?, ?, ?)";
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setInt(1, idProducto);  // ID del producto
-            stmt.setInt(2, idProveedor); // ID del proveedor
-            stmt.setDouble(3, precio);   // Precio específico del producto-proveedor
-
-            // Ejecutar la inserción de la relación
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al agregar proveedor a producto", e);
-            return false;
-        }
-    }
-
-    // Actualizar un producto
+    /**
+     * Actualiza los datos de un producto existente.
+     *
+     * @param producto El producto con los datos actualizados.
+     * @return true si la actualización fue exitosa, false en caso contrario.
+     */
     public boolean actualizarProducto(Producto producto) {
-        String sql = "UPDATE Productos SET nombre = ?, descripcion = ?, precio = ?, stock = ?, imagen = ?, id_categoria = ? " +
-                "WHERE id_producto = ?";
-
+        String sql = "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, stock = ?, imagen = ?, id_categoria = ? WHERE id_producto = ?";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
 
@@ -308,102 +64,228 @@ public class ProductosDAO {
             stmt.setInt(6, producto.getId_categoria().getIdCategoria());
             stmt.setInt(7, producto.getId_producto());
 
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected > 0) {
-                // Eliminar proveedores anteriores y agregar los nuevos
-                eliminarProveedoresDeProducto(producto.getId_producto());
-                for (Proveedor proveedor : producto.getProveedores()) {
-                    agregarProveedorAProducto(producto.getId_producto(), proveedor.getId(), 0);
-                }
-                return true;
-            }
-
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al actualizar producto", e);
-        }
-
-        return false;
-    }
-
-    // Eliminar proveedores de un producto
-    private void eliminarProveedoresDeProducto(int idProducto) throws SQLException {
-        String sql = "DELETE FROM Producto_Proveedor WHERE id_producto = ?";
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
-
-            stmt.setInt(1, idProducto);
-            stmt.executeUpdate();
-        }
-    }
-
-    // Eliminar un producto por ID
-    public boolean eliminarProducto(int idProducto) {
-        // Primero eliminar las relaciones de proveedores
-        try {
-            eliminarProveedoresDeProducto(idProducto);
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al eliminar relaciones de proveedores", e);
+            System.err.println("❌ Error al actualizar producto: " + e.getMessage());
             return false;
         }
+    }
 
-        // Luego eliminar el producto
-        String sql = "DELETE FROM Productos WHERE id_producto = ?";
+    /**
+     * Elimina un producto de la base de datos por su ID.
+     *
+     * @param idProducto El ID del producto a eliminar.
+     * @return true si se eliminó correctamente, false en caso contrario.
+     */
+    public boolean eliminarProducto(int idProducto) {
+        String sql = "DELETE FROM productos WHERE id_producto = ?";
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement stmt = conexion.prepareStatement(sql)) {
 
             stmt.setInt(1, idProducto);
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
-
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error al eliminar producto", e);
+            System.err.println("❌ Error al eliminar producto: " + e.getMessage());
+            return false;
         }
+    }
 
+    /**
+     * Obtiene todos los productos disponibles en la base de datos.
+     *
+     * @return Lista de productos.
+     */
+    public List<Producto> obtenerTodosLosProductos() {
+        String sql = "SELECT p.id_producto, p.nombre, p.descripcion, p.precio, p.stock, p.imagen, " +
+                "c.id_categoria, c.nombre AS nombre_categoria " +
+                "FROM productos p " +
+                "JOIN categorias c ON p.id_categoria = c.id_categoria";
+
+        List<Producto> productos = new ArrayList<>();
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Producto producto = new Producto();
+                producto.setId_producto(rs.getInt("id_producto"));
+                producto.setNombre(rs.getString("nombre"));
+                producto.setDescripcion(rs.getString("descripcion"));
+                producto.setPrecio(rs.getFloat("precio"));
+                producto.setStock(rs.getInt("stock"));
+                producto.setImagen(rs.getString("imagen"));
+
+                // ✅ Recuperar la categoría completa
+                int idCat = rs.getInt("id_categoria");
+                String nombreCategoria = rs.getString("nombre_categoria");
+                producto.setId_categoria(new Categoria(idCat, nombreCategoria));
+
+                // ✅ Recuperar los proveedores de este producto
+                producto.setProveedores(obtenerProveedoresPorProducto(conexion, producto.getId_producto()));
+
+                if (producto.getProveedores() == null || producto.getProveedores().isEmpty()) {
+                    System.err.println("⚠ Producto " + producto.getNombre() + " sin proveedores asociados.");
+                }
+
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener todos los productos: " + e.getMessage());
+        }
+        return productos;
+    }
+
+    /**
+     * Verifica si un producto existe en la base de datos por su ID.
+     *
+     * @param idProducto El ID del producto a verificar.
+     * @return true si el producto existe, false en caso contrario.
+     */
+    public boolean existeProducto(int idProducto) {
+        String sql = "SELECT COUNT(*) FROM productos WHERE id_producto = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+
+            stmt.setInt(1, idProducto);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al verificar existencia del producto: " + e.getMessage());
+        }
         return false;
     }
-    // Método para obtener todas las categorías
-    public List<Categoria> obtenerCategorias() {
-        List<Categoria> categorias = new ArrayList<>();
-        String sql = "SELECT * FROM Categorias";
+
+    /**
+     * Obtiene un producto por su ID, incluyendo su categoría (con nombre) y proveedores asociados.
+     *
+     * @param idProducto El ID del producto buscado.
+     * @return El producto completo, o null si no se encontró.
+     */
+    public Producto obtenerProductoPorId(int idProducto) {
+        String sql = "SELECT p.*, c.nombre AS categoria_nombre FROM productos p " +
+                "JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                "WHERE p.id_producto = ?";
+
+        Producto producto = null;
+
         try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                Categoria categoria = new Categoria();
-                categoria.setIdCategoria(rs.getInt("id_categoria"));
-                categoria.setNombre(rs.getString("nombre"));
-                categorias.add(categoria);
+            stmt.setInt(1, idProducto);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    // ✅ Obtener la categoría completa
+                    Categoria cat = new Categoria(rs.getInt("id_categoria"), rs.getString("categoria_nombre"));
+
+                    // ✅ Crear el producto con los datos recuperados
+                    producto = new Producto(
+                            rs.getInt("id_producto"),
+                            rs.getString("nombre"),
+                            rs.getString("descripcion"),
+                            rs.getFloat("precio"),
+                            rs.getInt("stock"),
+                            rs.getString("imagen"),
+                            cat,
+                            new ArrayList<>()
+                    );
+
+                    // ✅ Recuperar proveedores con la conexión activa
+                    producto.setProveedores(obtenerProveedoresPorProducto(conexion, idProducto));
+                }
             }
-
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("❌ Error al obtener producto por ID: " + e.getMessage());
         }
 
-        return categorias;
+        return producto;
     }
 
-    // Método para obtener todos los proveedores
-    public List<Proveedor> obtenerProveedores() {
+
+    /**
+     * Obtiene los proveedores asociados a un producto específico.
+     *
+     * @param idProducto El ID del producto.
+     * @return Lista de proveedores relacionados.
+     */
+    private List<Proveedor> obtenerProveedoresPorProducto(Connection conexion, int idProducto) {
+        String sql = "SELECT pr.id, pr.nombre FROM proveedores pr " +
+                "JOIN producto_proveedor pp ON pr.id = pp.id_proveedor " +
+                "WHERE pp.id_producto = ?";
+
         List<Proveedor> proveedores = new ArrayList<>();
-        String sql = "SELECT * FROM Proveedores";
 
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement stmt = conexion.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                Proveedor proveedor = new Proveedor();
-                proveedor.setId(rs.getInt("id"));
-                proveedor.setNombre(rs.getString("nombre"));
-                proveedores.add(proveedor);
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idProducto);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Proveedor proveedor = new Proveedor(rs.getInt("id"), rs.getString("nombre"));
+                    proveedores.add(proveedor);
+                    System.out.println("✅ Proveedor agregado: " + proveedor.getNombre()); // Depuración
+                }
             }
-
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("❌ Error al obtener proveedores para producto " + idProducto + ": " + e.getMessage());
         }
 
+        System.out.println("🔍 Total de proveedores obtenidos: " + proveedores.size());
         return proveedores;
     }
 
+
+
+
+    /**
+     * Obtiene todas las categorías disponibles.
+     *
+     * @return Lista de categorías.
+     */
+    public List<Categoria> obtenerCategorias() {
+        String sql = "SELECT * FROM categorias";
+        List<Categoria> categorias = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Categoria cat = new Categoria(rs.getInt("id_categoria"), rs.getString("nombre"));
+                categorias.add(cat);
+                System.out.println("✅ Categoría encontrada: " + cat.getNombre()); // Depuración
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener categorías: " + e.getMessage());
+        }
+        return categorias;
+    }
+
+    /**
+     * Obtiene todos los proveedores disponibles.
+     *
+     * @return Lista de proveedores.
+     */
+    public List<Proveedor> obtenerProveedores() {
+        String sql = "SELECT * FROM proveedores";
+        List<Proveedor> proveedores = new ArrayList<>();
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Proveedor prov = new Proveedor(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("direccion"),
+                        rs.getString("telefono"),
+                        rs.getString("email")
+                );
+                proveedores.add(prov);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener proveedores: " + e.getMessage());
+        }
+        return proveedores;
+    }
 }

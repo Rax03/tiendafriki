@@ -2,17 +2,11 @@ package org.example.controller;
 
 import org.example.model.entity.Usuario;
 import org.example.model.service.LoginService;
-import org.example.view.AdminVista;
-import org.example.view.RegistroUsuarioVista;
-import org.example.view.UsuarioVista;
-import org.example.view.LoginVista;
+import org.example.view.*;
+
 import javax.swing.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class LoginControlador {
-
-    private static final Logger logger = Logger.getLogger(LoginControlador.class.getName());
     private final LoginVista vista;
     private final LoginService loginService;
 
@@ -20,96 +14,54 @@ public class LoginControlador {
         this.vista = vista;
         this.loginService = loginService;
 
-        // Conectar los eventos de los botones en la vista
-        this.vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
-        this.vista.getBotonRegistrar().addActionListener(e -> abrirVentanaRegistro());
+        inicializarEventos();
+    }
+
+    private void inicializarEventos() {
+        vista.getBotonLogin().addActionListener(e -> autenticarUsuario());
+        vista.getBotonRegistrar().addActionListener(e -> abrirRegistroUsuario());
     }
 
     private void autenticarUsuario() {
-        try {
-            String email = vista.getEmail();
-            String contraseña = vista.getContraseña();
+        String email = vista.getEmail();
+        String contraseña = vista.getContraseña();
 
-            if (!validarCredenciales(email, contraseña)) {
-                return;
+        if (email.isEmpty() || contraseña.isEmpty()) {
+            JOptionPane.showMessageDialog(vista, "Debe ingresar el correo y la contraseña.");
+            return;
+        }
+
+        Usuario usuario = loginService.autenticarUsuario(email, contraseña);
+        if (usuario != null) {
+            JOptionPane.showMessageDialog(vista, "Inicio de sesión exitoso. Bienvenido " + usuario.getNombre());
+
+            vista.dispose();
+
+            switch (usuario.getRol()) {
+                case ADMIN:
+                    AdminVista adminVista = new AdminVista();
+                    new AdminControlador(adminVista);
+                    adminVista.setVisible(true);
+                    break;
+                case CLIENTE:
+                    UsuarioVista usuarioVista = new UsuarioVista();
+                    new UsuarioControlador(usuarioVista , usuario.getId());
+                    usuarioVista.setVisible(true);
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(null, "Rol no reconocido.");
             }
 
-            Usuario usuario = loginService.autenticarUsuario(email, contraseña);
-
-            if (usuario != null) {
-                manejarRolUsuario(usuario);
-            } else {
-                mostrarMensaje("Correo o contraseña incorrectos.");
-            }
-        } catch (Exception e) {
-            mostrarError("Error de autenticación", e);
+        } else {
+            JOptionPane.showMessageDialog(vista, "Correo o contraseña incorrectos.");
         }
     }
 
-    private boolean validarCredenciales(String email, String contraseña) {
-        if (email == null || email.isEmpty() || contraseña == null || contraseña.isEmpty()) {
-            mostrarMensaje("Por favor, ingresa tanto el correo como la contraseña.");
-            return false;
-        }
-
-        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            mostrarMensaje("El email no tiene un formato válido.");
-            return false;
-        }
-
-        return true;
+    private void abrirRegistroUsuario() {
+        vista.dispose();
+        RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
+        registroVista.setVisible(true);
+        new RegistroUsuarioControlador(registroVista);
     }
 
-    private void manejarRolUsuario(Usuario usuario) {
-        switch (usuario.getRol()) {
-            case ADMIN -> abrirAdminVista();
-            case CLIENTE -> abrirUsuarioVista(usuario);
-            default -> {
-                mostrarMensaje("Rol desconocido. Consulta con soporte.");
-                logger.log(Level.WARNING, "Rol desconocido para el usuario con email: " + usuario.getEmail());
-            }
-        }
-    }
-
-    private void abrirVentanaRegistro() {
-        try {
-            RegistroUsuarioVista registroVista = new RegistroUsuarioVista();
-            new RegistroUsuarioControlador(registroVista); // ✅ Conecta eventos aquí
-            registroVista.setVisible(true); // ✅ Luego muestra la vista
-            vista.dispose();
-        } catch (Exception e) {
-            mostrarError("Error al abrir la ventana de registro", e);
-        }
-    }
-
-    private void abrirAdminVista() {
-        try {
-            AdminVista adminVista = new AdminVista();
-            new AdminControlador(adminVista);
-            adminVista.setVisible(true);
-            vista.dispose();
-        } catch (Exception e) {
-            mostrarError("Error al abrir la vista de administrador", e);
-        }
-    }
-
-    private void abrirUsuarioVista(Usuario usuario) {
-        try {
-            UsuarioVista usuarioVista = new UsuarioVista();
-            new UsuarioControlador(usuarioVista, usuario);
-            usuarioVista.setVisible(true);
-            vista.dispose();
-        } catch (Exception e) {
-            mostrarError("Error al abrir la vista de usuario", e);
-        }
-    }
-
-    private void mostrarMensaje(String mensaje) {
-        JOptionPane.showMessageDialog(vista, mensaje, "Información", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void mostrarError(String titulo, Exception e) {
-        JOptionPane.showMessageDialog(vista, titulo + ": " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        logger.log(Level.SEVERE, titulo, e);
-    }
 }

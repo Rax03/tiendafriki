@@ -2,90 +2,54 @@ package org.example.controller;
 
 import org.example.model.dao.UsuarioDAO;
 import org.example.model.service.LoginService;
+import org.example.model.service.UsuarioService;
 import org.example.view.*;
 
 import javax.swing.*;
 
 public class AdminControlador {
-    private AdminVista vista;
+    private final AdminVista vista;
 
     public AdminControlador(AdminVista vista) {
         this.vista = vista;
-
         // Vincular los eventos de los botones
         inicializarEventos();
     }
 
     private void inicializarEventos() {
-        vista.getBtnProductos().addActionListener(e -> abrirProductos());
-        vista.getBtnProveedores().addActionListener(e -> abrirProveedores());
-        vista.getBtnCategorias().addActionListener(e -> abrirCategorias());
-        vista.getBtnPedidos().addActionListener(e -> abrirPedidos());
-        vista.getBtnUsuarios().addActionListener(e -> abrirUsuarios());
+        vista.getBtnProductos().addActionListener(e -> abrirVista(ProductoVista.class));
+        vista.getBtnProveedores().addActionListener(e -> abrirVista(ProveedorVista.class));
+        vista.getBtnCategorias().addActionListener(e -> abrirVista(CategoriaVista.class));
+        vista.getBtnPedidos().addActionListener(e -> abrirVista(PedidoVista.class));
+        vista.getBtnUsuarios().addActionListener(e -> abrirVista(UsuariosVista.class));
         vista.getBtnCerrarSesion().addActionListener(e -> cerrarSesion());
     }
 
-    private void abrirProductos() {
+    // Método genérico para abrir vistas
+    private void abrirVista(Class<? extends JFrame> vistaClass) {
         try {
-            System.out.println("Botón Productos presionado."); // Depuración
-            ProductoVista productoVista = new ProductoVista();
-            productoVista.setVisible(true);
+            System.out.println("Botón " + vistaClass.getSimpleName() + " presionado."); // Depuración
+            // Se crea la vista y se muestra
+            JFrame vistaInstance = vistaClass.getDeclaredConstructor().newInstance();
+            vistaInstance.setVisible(true);
         } catch (Exception e) {
-            mostrarError("Productos", e);
-        }
-    }
-
-    private void abrirProveedores() {
-        try {
-            System.out.println("Botón Proveedores presionado."); // Depuración
-            ProveedorVista proveedorVista = new ProveedorVista();
-            proveedorVista.setVisible(true);
-        } catch (Exception e) {
-            mostrarError("Proveedores", e);
-        }
-    }
-
-    private void abrirCategorias() {
-        try {
-            System.out.println("Botón Categorías presionado."); // Depuración
-            CategoriaVista categoriaVista = new CategoriaVista();
-            categoriaVista.setVisible(true);
-        } catch (Exception e) {
-            mostrarError("Categorías", e);
-        }
-    }
-
-
-
-    private void abrirPedidos() {
-        try {
-            System.out.println("Botón Pedidos presionado."); // Depuración
-            PedidoVista pedidoVista = new PedidoVista();
-            pedidoVista.setVisible(true);
-        } catch (Exception e) {
-            mostrarError("Pedidos", e);
-        }
-    }
-
-    private void abrirUsuarios() {
-        try {
-            System.out.println("Botón Usuarios presionado."); // Depuración
-            UsuariosVista usuariosVista = new UsuariosVista();
-            usuariosVista.setVisible(true);
-        } catch (Exception e) {
-            mostrarError("Usuarios", e);
+            mostrarError("Abrir vista " + vistaClass.getSimpleName(), e);
         }
     }
 
     private void cerrarSesion() {
         try {
             System.out.println("Botón Cerrar Sesión presionado."); // Depuración
-            int confirmacion = JOptionPane.showConfirmDialog(vista, "¿Estás seguro de que deseas cerrar sesión?", "Cerrar Sesión", JOptionPane.YES_NO_OPTION);
+            int confirmacion = JOptionPane.showConfirmDialog(vista,
+                    "¿Estás seguro de que deseas cerrar sesión?", "Cerrar Sesión", JOptionPane.YES_NO_OPTION);
 
             if (confirmacion == JOptionPane.YES_OPTION) {
+                // Cerrar la ventana de AdminVista y abrir LoginVista
                 vista.dispose();
                 LoginVista loginVista = new LoginVista();
-                new LoginControlador(loginVista, new LoginService(new UsuarioDAO()));
+                // Se reutiliza el controlador de Login
+                LoginService loginService = new LoginService( new UsuarioService(new UsuarioDAO()));
+                new LoginControlador(loginVista, loginService);
                 loginVista.setVisible(true);
             }
         } catch (Exception e) {
@@ -94,7 +58,7 @@ public class AdminControlador {
     }
 
     private void mostrarError(String modulo, Exception e) {
-        JOptionPane.showMessageDialog(vista, "Error al abrir la vista de " + modulo + ": " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(vista, "Error al realizar la acción de " + modulo + ": " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         e.printStackTrace();
     }
 }
