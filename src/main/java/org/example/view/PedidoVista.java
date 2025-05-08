@@ -24,25 +24,27 @@ public class PedidoVista extends JFrame {
 
         pedidoDAO = new PedidoDAO();
 
-        // Configuración del panel principal
+        // Panel principal
         JPanel panelPrincipal = new JPanel(new BorderLayout());
         JLabel titulo = new JLabel("Gestión de Pedidos", JLabel.CENTER);
-        titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24)); // Título con estilo consistente
+        titulo.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
         titulo.setForeground(Color.WHITE);
-        panelPrincipal.setBackground(new Color(34, 34, 34)); // Fondo oscuro
+        panelPrincipal.setBackground(new Color(34, 34, 34));
 
-        // Configurar la tabla
-        modeloTabla = new DefaultTableModel(new String[]{"ID Pedido", "ID Cliente", "Fecha Pedido", "Estado", "Total"}, 0) {
+        // Tabla
+        modeloTabla = new DefaultTableModel(new String[]{
+                "ID Pedido", "Cliente", "Fecha Pedido", "Estado", "Total", "Productos"
+        }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Hacer las celdas no editables
+                return false;
             }
         };
         tablaPedidos = new JTable(modeloTabla);
         tablaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JScrollPane scrollTabla = new JScrollPane(tablaPedidos);
 
-        // Configuración de botones CRUD
+        // Botones
         JPanel panelBotones = new JPanel(new FlowLayout());
         JButton btnAgregar = new JButton("Agregar");
         JButton btnEditar = new JButton("Editar");
@@ -60,29 +62,31 @@ public class PedidoVista extends JFrame {
         panelBotones.add(btnEditar);
         panelBotones.add(btnEliminar);
 
-        // Llenar la tabla con los datos de pedidos
-        llenarTablaPedidos();
-
-        // Añadir componentes al panel principal
+        // Agregar componentes al panel principal
         panelPrincipal.add(titulo, BorderLayout.NORTH);
         panelPrincipal.add(scrollTabla, BorderLayout.CENTER);
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
-        // Añadir panel principal al JFrame
         add(panelPrincipal);
-        setVisible(true);
+
+        llenarTablaPedidos(); // Llenar datos al iniciar
     }
 
     private void llenarTablaPedidos() {
-        modeloTabla.setRowCount(0); // Limpiar la tabla antes de llenarla
+        modeloTabla.setRowCount(0);
         List<Pedido> pedidos = pedidoDAO.obtenerTodosLosPedidos();
+
         for (Pedido pedido : pedidos) {
+            String nombreCliente = pedidoDAO.obtenerNombreClientePorId(pedido.getIdCliente());
+            String productos = pedidoDAO.obtenerProductosPorPedido(pedido.getIdPedido());
+
             modeloTabla.addRow(new Object[]{
                     pedido.getIdPedido(),
-                    pedido.getIdCliente(),
+                    (nombreCliente != null) ? nombreCliente : "Cliente desconocido",
                     pedido.getFechaPedido().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                     pedido.getEstado(),
-                    pedido.getTotal()
+                    pedido.getTotal(),
+                    (productos != null) ? productos : "Sin productos",
             });
         }
     }
@@ -112,20 +116,20 @@ public class PedidoVista extends JFrame {
                         fechaPedido,
                         cmbEstado.getSelectedItem().toString(),
                         Float.parseFloat(txtTotal.getText())
-
                 );
 
-                if (pedido.getIdPedido()<0) {
-                    JOptionPane.showMessageDialog(this, "Pedido registrado exitosamente.");
+                if (pedidoDAO.insertarPedido(pedido)) {
+                    JOptionPane.showMessageDialog(this, "✅ Pedido registrado exitosamente.");
                     llenarTablaPedidos();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Error al registrar el pedido.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "❌ Error al registrar el pedido.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Error en los datos ingresados. Verifica los campos.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "❌ Error en los datos ingresados. Verifica los campos.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
+
 
     private void mostrarFormularioEditar() {
         int filaSeleccionada = tablaPedidos.getSelectedRow();
@@ -161,7 +165,7 @@ public class PedidoVista extends JFrame {
         if (opcion == JOptionPane.OK_OPTION) {
             try {
                 pedidoExistente.setIdCliente(Integer.parseInt(txtIdCliente.getText()));
-                pedidoExistente.setTotal(Float.parseFloat(txtTotal.getText())); 
+                pedidoExistente.setTotal(Float.parseFloat(txtTotal.getText()));
                 pedidoExistente.setEstado(cmbEstado.getSelectedItem().toString());
 
                 if (pedidoDAO.actualizarPedido(pedidoExistente)) {
@@ -197,8 +201,8 @@ public class PedidoVista extends JFrame {
 
     private void estilizarBoton(JButton boton) {
         boton.setFont(new Font("Arial", Font.BOLD, 14));
-        boton.setBackground(new Color(0, 153, 255)); // Azul vibrante
-        boton.setForeground(Color.WHITE); // Texto blanco
+        boton.setBackground(new Color(0, 153, 255));
+        boton.setForeground(Color.WHITE);
         boton.setFocusPainted(false);
         boton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
     }

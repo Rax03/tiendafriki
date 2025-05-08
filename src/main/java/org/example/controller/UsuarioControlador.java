@@ -11,7 +11,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UsuarioControlador {
     private final UsuarioVista vista;
@@ -19,7 +21,8 @@ public class UsuarioControlador {
     private final ProductosDAO productoDAO;
     private final int idUsuario;
     private final List<Producto> carrito;
-    private List<Producto> listaProductos; // Lista completa de productos obtenidos de la BD
+    private final Map<Integer, Integer> cantidadesSeleccionadas; // ✅ Almacena cantidades por producto
+    private List<Producto> listaProductos;
 
     public UsuarioControlador(UsuarioVista vista, int idUsuario) {
         this.vista = vista;
@@ -27,7 +30,7 @@ public class UsuarioControlador {
         this.productoDAO = new ProductosDAO();
         this.idUsuario = idUsuario;
         this.carrito = new ArrayList<>();
-
+        this.cantidadesSeleccionadas = new HashMap<>(); // ✅ Inicializar mapa
         inicializarEventos();
         cargarProductosEnTabla();
     }
@@ -41,28 +44,32 @@ public class UsuarioControlador {
     }
 
     private void cargarProductosEnTabla() {
-        // Guardamos la lista completa de productos obtenida de la BD.
+        String filtro = vista.getCampoBusqueda().getText().trim().toLowerCase(); // ✅ Obtener el texto del campo de búsqueda
         listaProductos = productoDAO.obtenerTodosLosProductos();
         DefaultTableModel modelo = vista.getModeloTabla();
         modelo.setRowCount(0);
 
         for (Producto p : listaProductos) {
-            ImageIcon icono;
-            try {
-                icono = new ImageIcon(p.getImagen());
-                Image img = icono.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                icono = new ImageIcon(img);
-            } catch (Exception e) {
-                icono = new ImageIcon(); // Imagen por defecto si falla
+            // ✅ Filtrar por nombre si el filtro no está vacío
+            if (filtro.isEmpty() || p.getNombre().toLowerCase().contains(filtro)) {
+                ImageIcon icono;
+                try {
+                    icono = new ImageIcon(p.getImagen());
+                    Image img = icono.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                    icono = new ImageIcon(img);
+                } catch (Exception e) {
+                    icono = new ImageIcon();
+                }
+                modelo.addRow(new Object[]{
+                        icono,
+                        p.getNombre(),
+                        p.getPrecio(),
+                        p.getStock()
+                });
             }
-            modelo.addRow(new Object[]{
-                    icono,
-                    p.getNombre(),
-                    p.getPrecio(),
-                    p.getStock()
-            });
         }
     }
+
 
     private void agregarProductoAlCarrito() {
         int filaSeleccionada = vista.getTablaProductos().getSelectedRow();
@@ -71,38 +78,31 @@ public class UsuarioControlador {
             return;
         }
 
-        // Recuperar el producto completo usando la listaProductos
         Producto productoSeleccionado = listaProductos.get(filaSeleccionada);
 
         int cantidad;
         try {
-            cantidad = Integer.parseInt(vista.getCampoCantidad().getText());
+            cantidad = Integer.parseInt(vista.getCampoCantidad().getText()); // ✅ Obtener cantidad ingresada por el usuario
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(vista, "Cantidad no válida.");
+            JOptionPane.showMessageDialog(vista, "❌ Ingresa una cantidad válida.");
             return;
         }
 
         if (cantidad > productoSeleccionado.getStock() || cantidad <= 0) {
-            JOptionPane.showMessageDialog(vista, "Cantidad no disponible en stock.");
+            JOptionPane.showMessageDialog(vista, "❌ Cantidad no disponible en stock.");
             return;
         }
 
-        // Clonar el objeto para el carrito para no modificar la lista original.
-        // Se asume que el constructor básico (nombre, precio, imagen) existe y se añadiría la cantidad.
-        Producto productoCarrito = new Producto(
-                productoSeleccionado.getNombre(),
-                productoSeleccionado.getDescripcion(),
-                productoSeleccionado.getPrecio(),
-                productoSeleccionado.getStock(), 
-                productoSeleccionado.getImagen(),
-                productoSeleccionado.getId_categoria()
-        );
-        productoCarrito.setId_producto(productoSeleccionado.getId_producto()); // Asignar ID
-        productoCarrito.setStock(cantidad); // Asignar la cantidad a comprar
+        // ✅ Guardamos el producto en el carrito SIN modificar la lista original
+        carrito.add(productoSeleccionado);
 
-        carrito.add(productoCarrito);
+        // ✅ Guardamos la cantidad en el mapa de cantidades
+        cantidadesSeleccionadas.put(productoSeleccionado.getId_producto(), cantidad);
+
+        JOptionPane.showMessageDialog(vista, "✅ Producto agregado al carrito: " + productoSeleccionado.getNombre() + " x " + cantidad);
         mostrarCarrito();
     }
+
 
     private void eliminarProductoDelCarrito() {
         if (carrito.isEmpty()) {
@@ -112,18 +112,19 @@ public class UsuarioControlador {
 
         String productoAEliminar = JOptionPane.showInputDialog(vista, "Ingresa el nombre del producto a eliminar:");
         carrito.removeIf(p -> p.getNombre().equalsIgnoreCase(productoAEliminar));
+        cantidadesSeleccionadas.remove(productoAEliminar); // ✅ También eliminar la cantidad guardada
         mostrarCarrito();
     }
 
     private void mostrarCarrito() {
         StringBuilder texto = new StringBuilder();
         for (Producto p : carrito) {
-            // Se usa 'cantidad' para calcular el subtotal del producto y no el stock general.
-            texto.append(p.getStock())
+            int cantidadSeleccionada = cantidadesSeleccionadas.getOrDefault(p.getId_producto(), 1); // ✅ Obtener cantidad del mapa
+            texto.append(cantidadSeleccionada)
                     .append(" x ")
                     .append(p.getNombre())
                     .append(" = $")
-                    .append(p.getPrecio() * p.getStock())
+                    .append(p.getPrecio() * cantidadSeleccionada)
                     .append("\n");
         }
         vista.getAreaCarrito().setText(texto.toString());
@@ -137,7 +138,7 @@ public class UsuarioControlador {
 
         float total = 0;
         for (Producto p : carrito) {
-            total += p.getPrecio() * p.getStock();
+            total += p.getPrecio() * cantidadesSeleccionadas.getOrDefault(p.getId_producto(), 1); // ✅ Usar cantidad correcta
         }
 
         Pedido pedido = new Pedido();
@@ -146,13 +147,14 @@ public class UsuarioControlador {
         pedido.setTotal(total);
         pedido.setIdCliente(idUsuario);
 
-        int idPedido = pedidoDAO.registrarPedido(pedido, idUsuario, carrito);
+        int idPedido = pedidoDAO.registrarPedido(pedido, idUsuario, carrito, cantidadesSeleccionadas); // ✅ Ahora enviamos el mapa
 
         if (idPedido > 0) {
             JOptionPane.showMessageDialog(vista, "Compra realizada con éxito. ID Pedido: " + idPedido);
             carrito.clear();
+            cantidadesSeleccionadas.clear(); // ✅ Vaciar mapa después de compra
             vista.getAreaCarrito().setText("");
-            cargarProductosEnTabla(); // Actualiza el stock en la tabla si se modificó
+            cargarProductosEnTabla();
         } else {
             JOptionPane.showMessageDialog(vista, "Error al registrar la compra.");
         }

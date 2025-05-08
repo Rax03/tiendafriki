@@ -1,9 +1,14 @@
 package org.example.view;
 
+import org.example.model.conection.ConexionBD;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class UsuarioVista extends JFrame {
     private JTextField campoBusqueda;
@@ -81,6 +86,44 @@ public class UsuarioVista extends JFrame {
         panelCarrito.add(panelCantidad);
         panelInferior.add(panelCarrito, BorderLayout.CENTER);
         add(panelInferior, BorderLayout.SOUTH);
+
+        // Evento para finalizar compra y reducir stock
+        botonFinalizarCompra.addActionListener(e -> {
+            int filaSeleccionada = tablaProductos.getSelectedRow();
+            if (filaSeleccionada != -1) {
+                int idProducto = (int) modeloTabla.getValueAt(filaSeleccionada, 1); // Suponiendo que el ID está en la columna 1
+
+                try (Connection conexion = ConexionBD.conectar();
+                     PreparedStatement stmt = conexion.prepareStatement("UPDATE productos SET stock = stock - ? WHERE id_producto = ?")) {
+
+                    // ✅ Convertir el contenido del JTextField a un número
+                    int cantidadSeleccionada;
+                    try {
+                        cantidadSeleccionada = Integer.parseInt(campoCantidad.getText());
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, "❌ Ingresa un número válido en la cantidad.");
+                        return;
+                    }
+
+                    stmt.setInt(1, cantidadSeleccionada);
+                    stmt.setInt(2, idProducto);
+                    stmt.executeUpdate();
+
+                    JOptionPane.showMessageDialog(this, "✅ Compra realizada. Stock actualizado.");
+                } catch (SQLException ex) {
+                    System.err.println("❌ Error al actualizar stock: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this, "Error al procesar la compra.");
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "❌ Ingresa un número válido en el campo de cantidad.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Selecciona un producto antes de finalizar la compra.");
+            }
+        });
+
+
+
+
     }
 
     public DefaultTableModel getModeloTabla() { return modeloTabla; }

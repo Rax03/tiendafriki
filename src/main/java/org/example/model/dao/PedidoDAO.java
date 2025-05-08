@@ -9,6 +9,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PedidoDAO {
 
@@ -77,15 +78,14 @@ public class PedidoDAO {
         return detalles;
     }
 
-    public int registrarPedido(Pedido pedido, int idUsuario, List<Producto> carrito) {
+    public int registrarPedido(Pedido pedido, int idUsuario, List<Producto> carrito, Map<Integer, Integer> cantidadesSeleccionadas) {
         String sqlPedido = "INSERT INTO pedidos (id_cliente, fecha_pedido, estado, total) VALUES (?, ?, ?, ?)";
-        // La consulta sigue esperando el campo "cantidad", pero ya no usaremos valores variables, se insertará 1.
         String sqlDetalle = "INSERT INTO detalles_pedidos (id_pedido, id_producto, cantidad, precio) VALUES (?, ?, ?, ?)";
         String sqlActualizarStock = "UPDATE productos SET stock = stock - ? WHERE id_producto = ?";
-        String sqlVerificarProducto = "SELECT COUNT(*) FROM productos WHERE id_producto = ?";
+        String sqlVerificarProducto = "SELECT stock FROM productos WHERE id_producto = ?";
 
         try (Connection conexion = ConexionBD.conectar()) {
-            conexion.setAutoCommit(false); // Iniciar transacción
+            conexion.setAutoCommit(false);
 
             int idPedido = -1;
 
@@ -96,7 +96,6 @@ public class PedidoDAO {
                 stmtPedido.setDouble(4, pedido.getTotal());
                 stmtPedido.executeUpdate();
 
-                // Obtener el ID del pedido generado
                 try (ResultSet rs = stmtPedido.getGeneratedKeys()) {
                     if (rs.next()) {
                         idPedido = rs.getInt(1);
@@ -108,38 +107,40 @@ public class PedidoDAO {
                 }
             }
 
-            try (PreparedStatement stmtVerificarProducto = conexion.prepareStatement(sqlVerificarProducto);
+            try (PreparedStatement stmtVerificarStock = conexion.prepareStatement(sqlVerificarProducto);
                  PreparedStatement stmtDetalle = conexion.prepareStatement(sqlDetalle);
                  PreparedStatement stmtStock = conexion.prepareStatement(sqlActualizarStock)) {
 
                 for (Producto p : carrito) {
-                    // Verificar que el producto existe
-                    stmtVerificarProducto.setInt(1, p.getId_producto());
-                    try (ResultSet rs = stmtVerificarProducto.executeQuery()) {
-                        if (rs.next() && rs.getInt(1) == 0) {
+                    stmtVerificarStock.setInt(1, p.getId_producto());
+                    try (ResultSet rs = stmtVerificarStock.executeQuery()) {
+                        if (rs.next()) {
+                            int stockActual = rs.getInt(1);
+                            int cantidadSeleccionada = cantidadesSeleccionadas.getOrDefault(p.getId_producto(), 1); // Tomar cantidad desde el mapa
+
+                            if (stockActual < cantidadSeleccionada) {
+                                conexion.rollback();
+                                System.err.println("❌ Error: Stock insuficiente para " + p.getNombre());
+                                return -1;
+                            }
+
+                            // ✅ Insertar la cantidad seleccionada en detalles_pedidos
+                            stmtDetalle.setInt(1, idPedido);
+                            stmtDetalle.setInt(2, p.getId_producto());
+                            stmtDetalle.setInt(3, cantidadSeleccionada);
+                            stmtDetalle.setDouble(4, p.getPrecio());
+                            stmtDetalle.addBatch();
+
+                            // ✅ Reducir el stock en función de la cantidad seleccionada
+                            stmtStock.setInt(1, cantidadSeleccionada);
+                            stmtStock.setInt(2, p.getId_producto());
+                            stmtStock.addBatch();
+                        } else {
                             conexion.rollback();
-                            System.err.println("❌ Error: El producto " + p.getNombre() + " no existe en la base de datos.");
+                            System.err.println("❌ Error: El producto " + p.getNombre() + " no existe.");
                             return -1;
                         }
                     }
-
-                    if (p.getStock() < 1) {
-                        conexion.rollback();
-                        System.err.println("❌ Error: Stock insuficiente para " + p.getNombre());
-                        return -1;
-                    }
-
-                    // Insertar en detalles_pedidos usando 1 como cantidad (ya que quitamos el uso de 'cantidad')
-                    stmtDetalle.setInt(1, idPedido);
-                    stmtDetalle.setInt(2, p.getId_producto());
-                    stmtDetalle.setInt(3, 1); // Se fija la cantidad en 1
-                    stmtDetalle.setDouble(4, p.getPrecio());
-                    stmtDetalle.addBatch();
-
-                    // Reducir el stock del producto en 1 unidad
-                    stmtStock.setInt(1, 1);
-                    stmtStock.setInt(2, p.getId_producto());
-                    stmtStock.addBatch();
                 }
 
                 stmtDetalle.executeBatch();
@@ -147,7 +148,7 @@ public class PedidoDAO {
             }
 
             conexion.commit();
-            System.out.println("✅ Pedido registrado y stock actualizado.");
+            System.out.println("✅ Pedido registrado y stock actualizado correctamente.");
             return idPedido;
 
         } catch (SQLException e) {
@@ -155,6 +156,9 @@ public class PedidoDAO {
             return -1;
         }
     }
+
+
+
 
     // Actualizar un pedido existente
     public boolean actualizarPedido(Pedido pedido) {
@@ -221,5 +225,67 @@ public class PedidoDAO {
             System.err.println("Error al obtener el pedido por ID: " + e.getMessage());
         }
         return null;
+    }
+
+    public String obtenerProductosPorPedido(int idPedido) {
+        if (idPedido <= 0) {
+            throw new IllegalArgumentException("El ID del pedido debe ser mayor a cero.");
+        }
+        String sql = "SELECT p.nombre FROM detalles_pedidos dp JOIN productos p ON dp.id_producto = p.id_producto WHERE dp.id_pedido = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idPedido);
+            StringBuilder productos = new StringBuilder();
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    if (productos.length() > 0) {
+                        productos.append(", ");
+                    }
+                    productos.append(rs.getString("nombre"));
+                }
+            }
+            return productos.toString();
+        } catch (SQLException e) {
+            System.err.println("Error al obtener los productos del pedido: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public String obtenerNombreClientePorId(int idCliente) {
+        String sql = "SELECT nombre FROM usuarios WHERE id = ?";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+
+            stmt.setInt(1, idCliente);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("nombre"); // ✅ Devuelve el nombre correctamente
+                }
+            }
+        } catch (SQLException ex) {
+            System.err.println("❌ Error al obtener el nombre del cliente: " + ex.getMessage());
+        }
+        return null; // Si no encuentra resultados, devuelve null
+    }
+
+
+    public boolean insertarPedido(Pedido pedido) {
+        if (pedido == null || pedido.getIdCliente() <= 0 || pedido.getTotal() <= 0) {
+            throw new IllegalArgumentException("El pedido o sus datos no son válidos.");
+        }
+
+        String sql = "INSERT INTO pedidos (id_cliente, fecha_pedido, estado, total) VALUES (?, ?, ?, ?)";
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, pedido.getIdCliente());
+            stmt.setTimestamp(2, Timestamp.valueOf(pedido.getFechaPedido()));
+            stmt.setString(3, pedido.getEstado());
+            stmt.setDouble(4, pedido.getTotal());
+            stmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error al insertar el pedido: " + e.getMessage());
+            return false;
+        }
     }
 }

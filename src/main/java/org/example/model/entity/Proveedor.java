@@ -1,4 +1,5 @@
 package org.example.model.entity;
+
 public class Proveedor {
     private int id;
     private String nombre;
@@ -7,8 +8,11 @@ public class Proveedor {
     private String email;
 
     // Constructor por defecto
-    public Proveedor(int idProveedor, String nombre) {
+    public Proveedor(int id, String nombre) {
+        this.id = id;
+        this.nombre = nombre;
     }
+
 
     // Constructor con parámetros
     public Proveedor(int id, String nombre, String direccion, String telefono, String email) {
