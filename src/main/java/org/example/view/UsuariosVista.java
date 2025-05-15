@@ -3,6 +3,7 @@ package org.example.view;
 import org.example.model.dao.UsuarioDAO;
 import org.example.model.entity.Usuario;
 import org.example.model.entity.Enum.Rol;
+import org.example.utils.HashUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -117,28 +118,48 @@ public class UsuariosVista extends JFrame {
         int opcion = JOptionPane.showConfirmDialog(this, panelFormulario, "Agregar Usuario", JOptionPane.OK_CANCEL_OPTION);
         if (opcion == JOptionPane.OK_OPTION) {
             try {
+                String nombre = txtNombre.getText().trim();
+                String email = txtEmail.getText().trim();
+                String contraseña = new String(txtContraseña.getPassword());
+
+                // ✅ Validación de campos antes de registrar el usuario
+                if (nombre.isEmpty() || email.isEmpty() || contraseña.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "❌ Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (!HashUtil.validarEmail(email)) {
+                    JOptionPane.showMessageDialog(this, "❌ Email no válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // ✅ Hashear la contraseña con salt
+                String salt = HashUtil.generarSalt();
+                String contraseñaHasheada = HashUtil.hashearConSalt(contraseña, salt);
+
                 Usuario usuario = new Usuario(
                         0,
-                        txtNombre.getText(),
-                        txtEmail.getText(),
-                        new String(txtContraseña.getPassword()),
-                        generarSalt(),
+                        nombre,
+                        email,
+                        contraseñaHasheada, // ✅ Guardar la contraseña hasheada
+                        salt,
                         (Rol) cmbRol.getSelectedItem(),
                         java.time.LocalDate.now()
                 );
 
-
                 if (usuarioDAO.registrarUsuario(usuario)) {
-                    JOptionPane.showMessageDialog(this, "Usuario registrado exitosamente.");
+                    JOptionPane.showMessageDialog(this, "✅ Usuario registrado exitosamente con contraseña segura.");
                     llenarTablaUsuarios();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Error al registrar el usuario.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "❌ Error al registrar el usuario.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error en los datos ingresados: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "❌ Error en los datos ingresados: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
+
+
 
     private void mostrarFormularioEditar() {
         int filaSeleccionada = tablaUsuarios.getSelectedRow();
